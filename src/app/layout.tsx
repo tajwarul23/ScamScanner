@@ -3,7 +3,12 @@ import { IBM_Plex_Serif, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/header";
 import { cn } from "@/lib/utils";
+import { Toaster } from "@/components/ui/sonner";
 
+export const metadata: Metadata = {
+  title: "Scam Scanner",
+  description: "An AI based scam case investigator",
+};
 const plexSerif = IBM_Plex_Serif({
   subsets: ["latin"],
   weight: ["600"],
@@ -24,12 +29,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={cn(plexSerif.variable, plexMono.variable, "font-sans", plexSans.variable)}
-
+      className={cn(
+        plexSerif.variable,
+        plexMono.variable,
+        "font-sans scroll-smooth",
+        plexSans.variable,
+      )}
     >
       <body className="min-h-full flex flex-col">
         <Header />
         {children}
+        <Toaster/>
       </body>
     </html>
   );

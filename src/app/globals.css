@@ -47,6 +47,11 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --color-risk-high: var(--risk-high);
+  --color-risk-high-bg: var(--risk-high-bg);
+  --color-risk-med: var(--risk-med);
+  --color-risk-med-bg: var(--risk-med-bg);
+  --color-accent-dark: var(--accent-dark);
 }
 
 :root {
@@ -69,10 +74,16 @@
   --input: oklch(90% 0.012 250);
   --ring: oklch(48% 0.14 258);
   --radius: 0.5rem;
+  --risk-high: oklch(52% 0.17 25);
+  --risk-high-bg: oklch(95% 0.035 25);
+  --risk-med: oklch(52% 0.12 75);
+  --risk-med-bg: oklch(95% 0.04 85);
+  --accent-dark: oklch(27% 0.09 258);
 }
 
-
 .dark {
+
+
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

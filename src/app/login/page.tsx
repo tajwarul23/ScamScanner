@@ -6,14 +6,22 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { toast } from "sonner";
 
+
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
+       const redirectParam = new URLSearchParams(window.location.search).get(
+      "redirect"
+    );
+    const callbackURL =
+      redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")
+        ? redirectParam
+        : "/";
       const { error } = await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/",
+        callbackURL: callbackURL,
       });
       if (error) {
         toast.error("Login Failed", { position: "top-right" });

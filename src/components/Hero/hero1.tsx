@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 const verifySteps = [
   "Confirm the company's RJSC registration",
@@ -24,13 +24,17 @@ const Hero1 = () => {
             </p>
             <div className="mt-1.5 flex flex-wrap gap-3.5">
               <Button asChild size="lg" className="h-auto px-5 py-3.5 text-[15px]">
-                <Link href="/signup">
+                <Link href="/case/create">
                   Start a free investigation
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="h-auto px-5 py-3.5 text-[15px]">
-                <a href="#how">See how it works</a>
+                <Link href="/feed">
+                  <Globe/>
+                  Browse Feed
+                  
+                </Link>
               </Button>
             </div>
             <p className="mt-1 text-[13.5px] leading-relaxed text-muted-foreground/80">

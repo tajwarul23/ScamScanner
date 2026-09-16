@@ -21,9 +21,10 @@ import { Skeleton } from "../ui/skeleton";
 import { toast } from "sonner";
 
 const navLinks = [
-  { href: "#how", label: "How it works" },
-  { href: "#features", label: "Features" },
-  { href: "#feed", label: "Public feed" },
+  
+  { href: "/case/create", label: "Investigate" },
+  { href: "/reports", label: "Your Reports" },
+  { href: "/feed", label: "Browse Feed" },
 ];
 
 const HIDDEN_ROUTES = ["/login"];
@@ -77,17 +78,7 @@ const Header = () => {
           </Link>
         </div>
 
-        <nav className="hidden items-center gap-9 md:flex">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground border-b-2 border-transparent hover:border-foreground"
-            >
-              {link.label}
-            </a>
-          ))}
-        </nav>
+        
 
         <div className="hidden items-center gap-4.5 md:flex">
           {isPending ? (
@@ -110,8 +101,22 @@ const Header = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent className="mt-2">
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuItem>
+
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href={"/case/create"}>Investigate</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href={"/feed"}>Browse Feed</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+
+                  <DropdownMenuItem asChild className="cursor-pointer">
                     <Link href={"/reports"}>Your Reports</Link>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
@@ -148,29 +153,23 @@ const Header = () => {
             side="right"
             className="flex flex-col items-center gap-6 pt-10"
           >
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={() => setOpen(false)}
-                className="text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground border-b-2 border-transparent hover:border-foreground"
-              >
-                {link.label}
-              </a>
-            ))}
-            <div className="mt-4 flex flex-col gap-3 border-t border-border pt-6">
+            {session &&
+              navLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setOpen(false)}
+                  className="text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground border-b-2 border-transparent hover:border-foreground"
+                >
+                  {link.label}
+                </a>
+              ))}
+            <div className="mt-4 flex flex-col gap-3  pt-6">
               {isPending ? (
                 <Skeleton className="h-8 w-full rounded-md" />
               ) : session ? (
                 <>
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setOpen(false)}
-                  >
-                    <Link href="/reports">Your Reports</Link>
-                  </Button>
+                 
                   <Button
                     variant="destructive"
                     className="w-full"

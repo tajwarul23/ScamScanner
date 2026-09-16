@@ -208,7 +208,7 @@ export default function NewInvestigationPage() {
           </h1>
         </div>
 
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.log("VALIDATION ERRORS", errors))}>
           <FieldGroup>
             <Controller
               name="files"

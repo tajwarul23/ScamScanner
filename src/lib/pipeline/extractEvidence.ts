@@ -1,7 +1,16 @@
 import { GoogleGenAI } from "@google/genai";
-import { z } from "zod";
+import Groq from "groq-sdk";
+import { PDFParse } from "pdf-parse";
+import { date, z } from "zod";
+import { withFallBack } from "../resilience/withFallback";
+import { error } from "console";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const gemini = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+const GROQ_VISION_MODEL = "qwen/qwen3.8-27b";
+const GROQ_TEXT_MODEL = "openai/gpt-oss-120b";
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 export const extractionSchema = z.object({
   names: z.array(z.string()).default([]),
@@ -11,14 +20,14 @@ export const extractionSchema = z.object({
   claims: z.array(z.string()).default([]),
 });
 
+export type ExtractionResult = z.infer<typeof extractionSchema>;
+
 const SUPPORTED_MIME_TYPES = [
   "image/png",
   "image/jpeg",
   "image/webp",
   "application/pdf",
 ];
-
-export type ExtractionResult = z.infer<typeof extractionSchema>;
 
 const EXTRACTION_PROMPT = `You are analyzing a potential scam. Look at the attached screenshot and any pasted text together, as one piece of evidence.
 
@@ -38,56 +47,106 @@ interface ExtractEvidenceInput {
   text?: string;
 }
 
-export async function extractFromText (
-    documentText: string,
-    extraContext?: string
-): Promise<ExtractionResult>{
-    const response = await ai.models.generateContent({
-        model:"gemini-2.5-flash",
-        contents:[
-            {
-                role:"user",
-                parts:[
-                    {text: EXTRACTION_PROMPT},
-                    {text: `Document content: \n${documentText}`},
-                    ...(extraContext?.trim() ? [{text: `Extra content from the user : ${extraContext}`}] :[])
-                ]
-            }
-        ],
-        config:{
-            responseMimeType:"application/json"
-        }
-    });
+const parseExtraction = (
+  raw: string | null | undefined,
+  provider: string,
+): ExtractionResult => {
+  const parsed = extractionSchema.safeParse(JSON.parse(raw ?? "{}"));
+  if (!parsed.success) {
+    throw new Error(
+      `${provider}'s output didn't match the expected shape: ${JSON.stringify(parsed.error?.issues)}`,
+    );
+  }
 
-    const raw = response.text;
-    const parsed = extractionSchema.safeParse(JSON.parse(raw ?? "{}"));
+  return parsed.data;
+};
 
-    if(!parsed.success){
-        throw new Error(`Gemini output didn't match the expected shape : ${JSON.stringify(parsed.error.issues)}`)
-    }
-
-    return parsed.data;
-}
-
-export async function extractEvidence({
-  imageBuffer,
-  mimeType,
-  text,
-}: ExtractEvidenceInput): Promise<ExtractionResult> {
-
-    if(!SUPPORTED_MIME_TYPES.includes(mimeType)){
-        throw new Error(`Unsupported file type for extraction: ${mimeType}`)
-    }
-  const base64Image = imageBuffer.toString("base64");
-
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+//******************Text Based extraction (docx turns to text)*******************
+//First with Gemini
+const extractTextWithGemini = async (
+  documentText: string,
+  extraContext?: string,
+): Promise<ExtractionResult> => {
+  const response = await gemini.models.generateContent({
+    model: GEMINI_MODEL,
     contents: [
       {
         role: "user",
         parts: [
           { text: EXTRACTION_PROMPT },
-          ...(text?.trim() ? [{ text: `Extra context from the user: ${text}` }] : []),
+          { text: `Document Content : ${documentText}` },
+          ...(extraContext?.trim()
+            ? [{ text: `Extra context from the user : ${extraContext}` }]
+            : []),
+        ],
+      },
+    ],
+    config: {
+      responseMimeType: "application/json",
+    },
+  });
+
+  return parseExtraction(response.text, "Gemini");
+};
+//if gemini fails fallback to Groq
+const extractTextWithGroq = async (
+  documentText: string,
+  extraContext?: string,
+): Promise<ExtractionResult> => {
+  const promptText =
+    EXTRACTION_PROMPT +
+    `\n\n Document content : ${documentText}` +
+    (extraContext?.trim()
+      ? `\n\nExtra context from the user :${extraContext}`
+      : "");
+
+  const completion = await groq.chat.completions.create({
+    model: GROQ_TEXT_MODEL,
+    messages: [
+      {
+        role: "user",
+        content: promptText,
+      },
+    ],
+    response_format: { type: "json_object" },
+  });
+
+  return parseExtraction(completion.choices[0]?.message?.content, "Groq");
+};
+export const extractFromText = async (
+  documentText: string,
+  extraContext?: string,
+): Promise<ExtractionResult> => {
+  return withFallBack(
+    () => extractTextWithGemini(documentText, extraContext),
+    () => extractTextWithGroq(documentText, extraContext),
+    (error) =>
+      console.warn(
+        "Gemini text extraction failed, falling back to Groq:",
+        error,
+      ),
+  );
+};
+
+//****************** img/pdf extraction *******************
+//first with gemini
+export const extractWithGemini = async ({
+  imageBuffer,
+  mimeType,
+  text,
+}: ExtractEvidenceInput): Promise<ExtractionResult> => {
+  const base64Image = imageBuffer.toString("base64");
+
+  const response = await gemini.models.generateContent({
+    model: GEMINI_MODEL,
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: EXTRACTION_PROMPT },
+          ...(text?.trim()
+            ? [{ text: `Extra context from the user: ${text}` }]
+            : []),
           { inlineData: { mimeType, data: base64Image } },
         ],
       },
@@ -97,14 +156,73 @@ export async function extractEvidence({
     },
   });
 
-  const raw = response.text;
-  const parsed = extractionSchema.safeParse(JSON.parse(raw ?? "{}"));
+  return parseExtraction(response.text, "Gemini");
+};
 
-  if (!parsed.success) {
+//groq if gemini failse
+export const extractWithGroq = async ({
+  imageBuffer,
+  mimeType,
+  text,
+}: ExtractEvidenceInput): Promise<ExtractionResult> => {
+    console.log("Groq with vision");
+    
+  const base64Image = imageBuffer.toString("base64");
+  const promptText =
+    EXTRACTION_PROMPT +
+    (text?.trim() ? `\n\nExtra context from the user: ${text}` : "");
+
+  const completion = await groq.chat.completions.create({
+    model: GROQ_VISION_MODEL,
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: promptText },
+          {
+            type: "image_url",
+            image_url: { url: `data:${mimeType};base64,${base64Image}` },
+          },
+        ],
+      },
+    ],
+    response_format: { type: "json_object" },
+  });
+
+  return parseExtraction(completion.choices[0]?.message?.content, "Groq");
+};
+
+
+
+export const extractPdfWithGroqText = async ({
+  imageBuffer,
+  text,
+}: ExtractEvidenceInput): Promise<ExtractionResult> => {
+  const parser = new PDFParse({ data: imageBuffer });
+  const { text: pdfText } = await parser.getText();
+
+  if (pdfText.trim().length < 20) {
     throw new Error(
-      `Gemini output didn't match expected shape: ${JSON.stringify(parsed.error.issues)}`
+      "PDF has no extractable text (likely a scanned document) — fallback cannot process it",
     );
   }
 
-  return parsed.data;
+  return extractTextWithGroq(pdfText, text);
+};
+
+export const extractEvidence = async(input: ExtractEvidenceInput) : Promise<ExtractionResult> =>{
+if (!SUPPORTED_MIME_TYPES.includes(input.mimeType)) {
+    throw new Error(`Unsupported file type for extraction: ${input.mimeType}`);
+  }
+
+  const fallback =
+    input.mimeType === "application/pdf"
+      ? () => extractPdfWithGroqText(input)
+      : () => extractWithGroq(input);
+
+  return withFallBack(
+    () => extractWithGemini(input),
+    fallback,
+    (error) => console.warn("Gemini extraction failed, falling back to Groq:", error)
+  );
 }

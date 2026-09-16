@@ -38,6 +38,37 @@ interface ExtractEvidenceInput {
   text?: string;
 }
 
+export async function extractFromText (
+    documentText: string,
+    extraContext?: string
+): Promise<ExtractionResult>{
+    const response = await ai.models.generateContent({
+        model:"gemini-2.5-flash",
+        contents:[
+            {
+                role:"user",
+                parts:[
+                    {text: EXTRACTION_PROMPT},
+                    {text: `Document content: \n${documentText}`},
+                    ...(extraContext?.trim() ? [{text: `Extra content from the user : ${extraContext}`}] :[])
+                ]
+            }
+        ],
+        config:{
+            responseMimeType:"application/json"
+        }
+    });
+
+    const raw = response.text;
+    const parsed = extractionSchema.safeParse(JSON.parse(raw ?? "{}"));
+
+    if(!parsed.success){
+        throw new Error(`Gemini output didn't match the expected shape : ${JSON.stringify(parsed.error.issues)}`)
+    }
+
+    return parsed.data;
+}
+
 export async function extractEvidence({
   imageBuffer,
   mimeType,

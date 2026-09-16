@@ -33,6 +33,8 @@ const EXTRACTABLE_TYPES = [
   "image/jpeg",
   "image/webp",
   "application/pdf",
+   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+   "text/plain",
 ];
 
 type FileResult =
@@ -143,7 +145,7 @@ export default function NewInvestigationPage() {
 
     if (accepted.length > 0) {
         const compressed = await Promise.all(accepted.map(compressImage))
-      form.setValue("files", [...files, ...accepted], {
+      form.setValue("files", [...files, ...compressed], {
         shouldValidate: true,
       });
     }

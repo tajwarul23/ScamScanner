@@ -122,7 +122,7 @@ export const evidenceItems = pgTable("evidence_items", {
     .notNull()
     .references(() => cases.id, { onDelete: "cascade" }),
   fileName: text("file_name").notNull(),
-  fileUrl: text("file_url").notNull(),
+  fileUrl: text("file_url"),
   mimeType: text("mimeType").notNull(),
   extractionStatus: extractionEnum("extraction_status")
     .default("pending")

@@ -1,5 +1,16 @@
-import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+
+import { relations  } from "drizzle-orm";
+import {
+  pgTable,
+  text,
+  timestamp,
+  boolean,
+  index,
+  uuid,
+  pgEnum,
+  jsonb,
+} from "drizzle-orm/pg-core";
+import {type ExtractionResult } from "../pipeline/extractEvidence";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -73,9 +84,76 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
+export const statusEnum = pgEnum("status_enum", [
+  "processing",
+  "ready",
+  "failed",
+]);
+export const riskEnum = pgEnum("risk_enum", ["low", "medium", "high"]);
+export const extractionEnum = pgEnum("extraction_enum", [
+  "pending",
+  "success",
+  "error",
+  "skipped",
+]);
+
+export const cases = pgTable(
+  "cases",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    status: statusEnum("status").default("processing").notNull(),
+    riskLevel: riskEnum("risk"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index("idx_cases_userId").on(table.userId)],
+);
+
+export const evidenceItems = pgTable("evidence_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  caseId: uuid("case_id")
+    .notNull()
+    .references(() => cases.id, { onDelete: "cascade" }),
+  fileName: text("file_name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  mimeType: text("mimeType").notNull(),
+  extractionStatus: extractionEnum("extraction_status")
+    .default("pending")
+    .notNull(),
+  extractedData: jsonb("extracted_data").$type<ExtractionResult>(),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [index("idx_evidence_items_caseId").on(table.caseId)],)
+
+//one case belongs to exactly one user
+//one case can have multiple evidenceItem
+export const caseRelations = relations(cases, ({one, many}) => ({
+  user: one(user, {
+    fields:[cases.userId],
+    references:[user.id]
+  }),
+  evidenceItems: many(evidenceItems)
+}))
+
+//one evidence item belongs to exactly one case
+export const evidenceItemsRelations = relations(evidenceItems, ({one}) =>({
+  case: one(cases, {
+    fields:[evidenceItems.caseId],
+    references:[cases.id]
+  })
+}))
+//one user can have multiple case
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
+  cases: many(cases)
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({

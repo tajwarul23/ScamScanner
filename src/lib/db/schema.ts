@@ -108,6 +108,8 @@ export const cases = pgTable(
     context: text("context"),
     status: statusEnum("status").default("processing").notNull(),
     riskLevel: riskEnum("risk"),
+    summary: text("summary"),
+    verifySteps: jsonb("verify_steps").$type<string[]>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

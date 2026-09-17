@@ -18,6 +18,8 @@
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-risk-low: var(--risk-low);
+--color-risk-low-bg: var(--risk-low-bg);
   --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
@@ -79,6 +81,9 @@
   --risk-med: oklch(52% 0.12 75);
   --risk-med-bg: oklch(95% 0.04 85);
   --accent-dark: oklch(27% 0.09 258);
+  --risk-low: oklch(52% 0.15 145);
+--risk-low-bg: oklch(95% 0.03 145);
+
 }
 
 .dark {

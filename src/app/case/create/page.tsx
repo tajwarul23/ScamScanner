@@ -16,6 +16,8 @@ import { Loader2Icon } from "lucide-react";
 import { extractEvidenceAction } from "@/actions/extract-actions";
 import type { ExtractionResult } from "@/lib/pipeline/extractEvidence";
 import { compressImage } from "@/lib/pipeline/compressImage";
+import { createCaseAction } from "@/actions/create-case-actions";
+
 
 const ACCEPTED_FILE_TYPES = [
   "image/png",
@@ -160,41 +162,16 @@ export default function NewInvestigationPage() {
   };
 
   const onSubmit = async (values: FormValues) => {
-    const initial: Record<string, FileResult> = {};
-    values.files.forEach((file, i) => {
-      const key = `${file.name}-${i}`;
-      initial[key] = EXTRACTABLE_TYPES.includes(file.type)
-        ? { status: "loading" }
-        : { status: "skipped" };
-    });
-    setResults(initial);
+  const fd = new FormData();
+  values.files.forEach((file) => fd.append("files", file));
+  if (values.context) fd.append("context", values.context);
 
-    await Promise.all(
-      values.files.map(async (file, i) => {
-        const key = `${file.name}-${i}`;
-        if (!EXTRACTABLE_TYPES.includes(file.type)) return;
-
-        const fd = new FormData();
-        fd.append("file", file);
-        if (values.context) fd.append("text", values.context);
-
-        const result = await extractEvidenceAction(fd);
-        setResults((prev) => ({
-          ...prev,
-          [key]: result.success
-            ? { status: "success", data: result.data }
-            : { status: "error", error: result.error },
-        }));
-      }),
-    );
-
-    toast.success(
-      "Extraction preview ready — nothing saved yet, this is a Phase 1 test only.",
-      {
-        position: "top-center",
-      },
-    );
-  };
+  const result = await createCaseAction(fd);
+  if (result && !result.success) {
+    toast.error(result.error, { position: "top-center" });
+  }
+ 
+};
 
   return (
     <main className="flex flex-1 justify-center px-6 py-10 md:px-12">

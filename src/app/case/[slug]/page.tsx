@@ -1,9 +1,19 @@
-import React from 'react'
+import { notFound } from "next/navigation";
+import { getCaseData } from "@/actions/get-case-action";
+import { CaseDetailClient } from "@/components/case/CaseDetailClient";
 
-const CaseDetails = () => {
-  return (
-    <div>CaseDetails</div>
-  )
+
+interface CasePageProps {
+  params: Promise<{ slug: string }>;
 }
 
-export default CaseDetails
+export default async function CaseDetailPage({ params }: CasePageProps) {
+  const { slug } = await params;
+  const caseData = await getCaseData(slug);
+
+  if (!caseData) {
+    notFound();
+  }
+
+  return <CaseDetailClient caseId={slug} initialCase={caseData} />;
+}

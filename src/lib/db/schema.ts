@@ -104,7 +104,8 @@ export const cases = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    title: text("title").notNull(),
+    title: text("title"),
+    context: text("context"),
     status: statusEnum("status").default("processing").notNull(),
     riskLevel: riskEnum("risk"),
     createdAt: timestamp("created_at").defaultNow().notNull(),

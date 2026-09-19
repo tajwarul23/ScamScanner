@@ -11,6 +11,7 @@ import {
   jsonb,
 } from "drizzle-orm/pg-core";
 import {type ExtractionResult } from "../pipeline/extractEvidence";
+import { Signal } from "../pipeline/ruleSignalEngine";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -86,6 +87,7 @@ export const verification = pgTable(
 
 export const statusEnum = pgEnum("status_enum", [
   "processing",
+  "finalizing",
   "ready",
   "failed",
 ]);
@@ -108,6 +110,7 @@ export const cases = pgTable(
     context: text("context"),
     status: statusEnum("status").default("processing").notNull(),
     riskLevel: riskEnum("risk"),
+    signals: jsonb("signals").$type<Signal[]>(),
     summary: text("summary"),
     verifySteps: jsonb("verify_steps").$type<string[]>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),

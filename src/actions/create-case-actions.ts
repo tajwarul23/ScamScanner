@@ -9,8 +9,9 @@ import {
   extractFromText,
 } from "@/lib/pipeline/extractEvidence";
 import { finalizeCase } from "@/lib/pipeline/finalizeCase";
+import { ruleSignalEngine } from "@/lib/pipeline/ruleSignalEngine";
 import { uploadEvidenceFile } from "@/lib/pipeline/uploadEvidence";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -18,7 +19,7 @@ import { after } from "next/server";
 const DOCX_MIME_TYPE =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-//get the evidence from extractEvidence.ts and convertDocs.ts
+//get the evidence from (extractEvidence.ts and convertDocs.ts) and call the final layer of Ai
 const processExtraction = async (
   evidenceItemId: string,
   caseId: string,
@@ -78,9 +79,22 @@ const generateFinalResponse = async (caseId: string) => {
     return;
   }
 
+  //atomically claim the case for finalization
+  const claimed = await db.update(cases)
+                          .set({status:"finalizing"})
+                          .where(
+                            and(
+                              eq(cases.id, caseId),
+                              eq(cases.status, "processing"),
+                            ),
+                          )
+                          .returning({id: cases.id})
+
+  if(claimed.length === 0)return;
   try {
     const cleanResults = successFulResults.flatMap((r) => (r ? [r] : []));
-    const report = await finalizeCase(cleanResults);
+    const signals =  ruleSignalEngine(cleanResults);
+    const report = await finalizeCase(cleanResults, signals);
     await db
       .update(cases)
       .set({
@@ -88,6 +102,7 @@ const generateFinalResponse = async (caseId: string) => {
         summary: report.summary,
         riskLevel: report.riskLevel,
         verifySteps: report.verifySteps,
+        signals:signals,
         status: "ready",
       })
       .where(eq(cases.id, caseId));
@@ -95,7 +110,7 @@ const generateFinalResponse = async (caseId: string) => {
     console.error("Failed to generate final report", err);
     await db
       .update(cases)
-      .set({ status: "ready" })
+      .set({ status: "failed" })
       .where(eq(cases.id, caseId));
   }
 };
@@ -189,3 +204,5 @@ export const createCaseAction = async (
 
   redirect(`/case/${newCase.id}`);
 };
+
+

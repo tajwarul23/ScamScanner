@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,10 +13,16 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { toast } from "sonner";
 
 import { Loader2Icon } from "lucide-react";
-import { extractEvidenceAction } from "@/actions/extract-actions";
+
 import type { ExtractionResult } from "@/lib/pipeline/extractEvidence";
 import { compressImage } from "@/lib/pipeline/compressImage";
 import { createCaseAction } from "@/actions/create-case-actions";
+
+import RedirectLoading from "@/components/Redirect/redirect";
+import { unstable_rethrow } from "next/navigation";
+import { start } from "repl";
+import { Redressed } from "next/font/google";
+
 
 
 const ACCEPTED_FILE_TYPES = [
@@ -38,6 +44,8 @@ const EXTRACTABLE_TYPES = [
    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
    "text/plain",
 ];
+
+
 
 type FileResult =
   | { status: "loading" }
@@ -66,6 +74,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function NewInvestigationPage() {
+  const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [results, setResults] = useState<Record<string, FileResult>>({});
 
@@ -160,22 +169,35 @@ export default function NewInvestigationPage() {
       { shouldValidate: true },
     );
   };
+  const [isPending, startTransition] = useTransition();
+ const onSubmit = async (values: FormValues) => {
+  
+ const fd = new FormData();
+ values.files.forEach((file)=>{
+  fd.append("files", file)
+ });
+ if(values.context)fd.append("context", values.context);
 
-  const onSubmit = async (values: FormValues) => {
-  const fd = new FormData();
-  values.files.forEach((file) => fd.append("files", file));
-  if (values.context) fd.append("context", values.context);
+   startTransition(async () => {
+    const result = await createCaseAction(fd);
 
-  const result = await createCaseAction(fd);
-  if (result && !result.success) {
-    toast.error(result.error, { position: "top-center" });
-  }
- 
+    if (result && !result.success) {
+      toast.error(result.error, {
+        position: "top-center",
+      });
+    }
+  });
+
 };
+
+
+if(isPending){
+  return <RedirectLoading/>
+}
 
   return (
     <main className="flex flex-1 justify-center px-6 py-10 md:px-12">
-      <div className="w-full max-w-[640px]">
+      <div className="w-full max-w-160">
         <div className="mb-6.5">
           <p className="font-mono text-sm  uppercase  text-primary">
             New investigation
@@ -186,6 +208,7 @@ export default function NewInvestigationPage() {
         </div>
 
         <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.log("VALIDATION ERRORS", errors))}>
+         
           <FieldGroup>
             <Controller
               name="files"

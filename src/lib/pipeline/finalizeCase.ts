@@ -1,57 +1,88 @@
 import Groq from "groq-sdk";
-import {z} from "zod";
-import type {ExtractionResult} from "./extractEvidence";
+import { z } from "zod";
+import type { ExtractionResult } from "./extractEvidence";
+import { Signal } from "./ruleSignalEngine";
 
-const groq = new Groq({apiKey:process.env.GROQ_API_KEY});
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const GROQ_TEXT_MODEL = "openai/gpt-oss-120b";
 
 export const caseReportSchema = z.object({
-    title: z.string(),
-    summary: z.string(),
-    riskLevel: z.enum(["low", "medium", "high"]),
-    verifySteps : z.array(z.string()).default([])
-})
+  title: z.string(),
+  summary: z.string(),
+  riskLevel: z.enum(["low", "medium", "high"]),
+  verifySteps: z.array(z.string()).default([]),
+});
 
 export type CaseReport = z.infer<typeof caseReportSchema>;
 
-export const finalizeCase = async(
-    evidenceResult : ExtractionResult[]
-):Promise<CaseReport> =>{
-    const combined = {
-        names: evidenceResult.flatMap((r) => r.names),
-        companies: evidenceResult.flatMap((r) =>r.companies),
-        amounts: evidenceResult.flatMap((r) =>r.amounts),
-        dates: evidenceResult.flatMap((r) =>r.dates),
-        claims: evidenceResult.flatMap((r) =>r.claims),
-    };
+const riskRank = {
+  low: 0,
+  medium: 1,
+  high: 2,
+}as const;
+const riskFromRank = ["low", "medium", "high"] as const;
+const calculateRisk = (riskLevel : CaseReport["riskLevel"], signals: Signal[]) : CaseReport["riskLevel"] =>{
 
-    const prompt = `You are summarizing a potential scam case based on extracted evidence from one or more uploaded files. No rule-based signal detection or pattern-matching database has run yet — base your assessment purely on the evidence below.
+  if(signals.length === 0) return riskLevel;
+  const highestSignal = Math.max(...signals.map((signal) =>riskRank[signal.severity] ));
+
+  const finalRank = Math.max(highestSignal, riskRank[riskLevel]);
+  return riskFromRank[finalRank];
+}
+export const finalizeCase = async (
+  evidenceResult: ExtractionResult[],
+  signals: Signal[],
+): Promise<CaseReport> => {
+  const combined = {
+    names: evidenceResult.flatMap((r) => r.names),
+    companies: evidenceResult.flatMap((r) => r.companies),
+    amounts: evidenceResult.flatMap((r) => r.amounts),
+    dates: evidenceResult.flatMap((r) => r.dates),
+    claims: evidenceResult.flatMap((r) => r.claims),
+    phoneNumbers: evidenceResult.flatMap((r) => r.phoneNumbers),
+    accountNumbers: evidenceResult.flatMap((r) => r.accountNumbers),
+  };
+  const signalsText = signals.length
+    ? signals
+        .map(
+          (s) => `- [${s.severity.toUpperCase()}] ${s.label}: ${s.description}`,
+        )
+        .join("\n")
+    : "none detected";
+  const prompt = `You are summarizing a potential scam case based on extracted evidence from one or more uploaded files. A rule-based signal detection pass has already run — weigh it alongside the evidence below.
 
 Names mentioned: ${combined.names.join(", ") || "none"}
 Companies mentioned: ${combined.companies.join(", ") || "none"}
 Amounts mentioned: ${combined.amounts.join(", ") || "none"}
 Dates mentioned: ${combined.dates.join(", ") || "none"}
 Claims made: ${combined.claims.join("; ") || "none"}
-
+mentioned phoneNumbers: ${combined.phoneNumbers.join(",") || "none"},
+mentioned accountNumbers: ${combined.accountNumbers.join(",") || "none"},
+Rule-based signals detected:
+${signalsText}
 Return JSON with this exact shape:
 {
   "title": "a short, descriptive 6-10 word title, no quotes, no trailing punctuation",
   "summary": "a 2-4 sentence plain-language summary of what's happening in this case",
   "riskLevel": "low" | "medium" | "high",
   "verifySteps": ["2-4 concrete, specific things to verify next, based on what's mentioned above"]
-}`
-const compilation = await groq.chat.completions.create({
+}`;
+  const compilation = await groq.chat.completions.create({
     model: GROQ_TEXT_MODEL,
-    messages: [{role: "user", content:prompt}],
-    response_format: {type:"json_object"}
-});
-const raw = compilation.choices[0]?.message?.content;
-const parsed = caseReportSchema.safeParse(JSON.parse(raw ?? "{}"));
+    messages: [{ role: "user", content: prompt }],
+    response_format: { type: "json_object" },
+  });
+  const raw = compilation.choices[0]?.message?.content;
+  const parsed = caseReportSchema.safeParse(JSON.parse(raw ?? "{}"));
 
-if(!parsed.success){
+  if (!parsed.success) {
     throw new Error(
-        `Groq report didn't match expected shape: ${JSON.stringify(parsed.error.issues)}`
-    )
-}
-return parsed.data;
-}
+      `Groq report didn't match expected shape: ${JSON.stringify(parsed.error.issues)}`,
+    );
+  }
+  return{
+    ...parsed.data,
+    riskLevel: calculateRisk(parsed.data.riskLevel, signals)
+  }
+};

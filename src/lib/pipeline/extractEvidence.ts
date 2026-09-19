@@ -18,6 +18,9 @@ export const extractionSchema = z.object({
   amounts: z.array(z.string()).default([]),
   dates: z.array(z.string()).default([]),
   claims: z.array(z.string()).default([]),
+  phoneNumbers: z.array(z.string()).default([]),
+  accountNumbers: z.array(z.string()).default([]),
+
 });
 
 export type ExtractionResult = z.infer<typeof extractionSchema>;
@@ -39,7 +42,7 @@ Extract the following as JSON, with no commentary outside the JSON:
 - claims: short factual claims being made in the message (e.g. "requires an upfront equipment fee", "guarantees weekly returns")
 
 If a category has nothing, return an empty array for it. Return only valid JSON matching this shape:
-{"names": string[], "companies": string[], "amounts": string[], "dates": string[], "claims": string[]}`;
+{"names": string[], "companies": string[], "amounts": string[], "dates": string[], "claims": string[], "phoneNumbers" : string[],"accountNumbers" : string[] }`;
 
 interface ExtractEvidenceInput {
   imageBuffer: Buffer;

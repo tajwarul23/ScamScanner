@@ -42,6 +42,7 @@ export const finalizeCase = async (
     claims: evidenceResult.flatMap((r) => r.claims),
     phoneNumbers: evidenceResult.flatMap((r) => r.phoneNumbers),
     accountNumbers: evidenceResult.flatMap((r) => r.accountNumbers),
+    urls: evidenceResult.flatMap((r) =>r.urls)
   };
   const signalsText = signals.length
     ? signals
@@ -59,6 +60,7 @@ Dates mentioned: ${combined.dates.join(", ") || "none"}
 Claims made: ${combined.claims.join("; ") || "none"}
 mentioned phoneNumbers: ${combined.phoneNumbers.join(",") || "none"},
 mentioned accountNumbers: ${combined.accountNumbers.join(",") || "none"},
+mentioned urls: ${combined.urls.join(",") || "none"},
 Rule-based signals detected:
 ${signalsText}
 Return JSON with this exact shape:

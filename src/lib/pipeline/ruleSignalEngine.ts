@@ -1,4 +1,5 @@
 import type { ExtractionResult } from "./extractEvidence";
+import { checkUrls } from "./urlChecks";
 
 export type SignalSeverity = "low" | "medium" | "high";
 
@@ -18,6 +19,7 @@ interface CombinedEvidence {
     claims: string[];
     phoneNumbers: string[];
     accountNumbers: string[];
+    urls: string[]
 }
 
 type SourceName = "claims" | "dates" | "amounts" | "claimsAndDates" | "claimsAndAmounts";
@@ -154,6 +156,7 @@ export const ruleSignalEngine = (evidenceResults : ExtractionResult[]) : Signal[
     amounts: evidenceResults.flatMap((result) => result.amounts),
     dates: evidenceResults.flatMap((result) => result.dates),
     claims: evidenceResults.flatMap((result) => result.claims),
+    urls: evidenceResults.flatMap((result) => result.urls),
     phoneNumbers: evidenceResults.flatMap(
       (result) => result.phoneNumbers
     ),
@@ -202,8 +205,10 @@ export const ruleSignalEngine = (evidenceResults : ExtractionResult[]) : Signal[
     (signal): signal is Signal => signal !== null
   );
 
+  const urlSignals = checkUrls(evidence.urls);
     return[
         ...keywordSignals,
-        ...directSignals
+        ...directSignals,
+        ...urlSignals
     ]
 }

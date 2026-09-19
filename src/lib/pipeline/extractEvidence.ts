@@ -20,6 +20,7 @@ export const extractionSchema = z.object({
   claims: z.array(z.string()).default([]),
   phoneNumbers: z.array(z.string()).default([]),
   accountNumbers: z.array(z.string()).default([]),
+  urls: z.array(z.string()).default([])
 
 });
 
@@ -40,9 +41,10 @@ Extract the following as JSON, with no commentary outside the JSON:
 - amounts: any sums of money mentioned, as written (e.g. "$500", "\u09f320,000")
 - dates: any dates or relative time references mentioned, as written (e.g. "next Monday", "March 3rd")
 - claims: short factual claims being made in the message (e.g. "requires an upfront equipment fee", "guarantees weekly returns")
+- urls: any web links or domains mentioned (e.g. "http://bit.ly/xyz", "paypal-verify-account.com")
 
 If a category has nothing, return an empty array for it. Return only valid JSON matching this shape:
-{"names": string[], "companies": string[], "amounts": string[], "dates": string[], "claims": string[], "phoneNumbers" : string[],"accountNumbers" : string[] }`;
+{"names": string[], "companies": string[], "amounts": string[], "dates": string[], "claims": string[], "phoneNumbers" : string[],"accountNumbers" : string[], "urls": string[] }`;
 
 interface ExtractEvidenceInput {
   imageBuffer: Buffer;

@@ -93,8 +93,11 @@ const generateFinalResponse = async (caseId: string) => {
   if(claimed.length === 0)return;
   try {
     const cleanResults = successFulResults.flatMap((r) => (r ? [r] : []));
-    const signals =  ruleSignalEngine(cleanResults);
+    const signals =  await ruleSignalEngine(cleanResults);
     const report = await finalizeCase(cleanResults, signals);
+    console.log("Signals", signals);
+    console.log("Result", cleanResults);
+    console.log("Final Report", report)
     await db
       .update(cases)
       .set({

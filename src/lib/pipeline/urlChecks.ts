@@ -1,5 +1,5 @@
 import type { Signal } from "./ruleSignalEngine";
-
+import axios from "axios";
 
 const SUSPICIOUS_KEYWORDS = [
   "login",
@@ -88,8 +88,7 @@ function createSignal(
 ----------------------------- */
 
 function isIpAddress(hostname: string): boolean {
-  const ipv4 =
-    /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname);
+  const ipv4 = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname);
 
   if (ipv4) {
     return true;
@@ -103,15 +102,11 @@ function isIpAddress(hostname: string): boolean {
 ----------------------------- */
 
 function hasPunycode(hostname: string): boolean {
-  return hostname
-    .split(".")
-    .some((part) => part.startsWith("xn--"));
+  return hostname.split(".").some((part) => part.startsWith("xn--"));
 }
 
 function hasUnicode(hostname: string): boolean {
-  return [...hostname].some(
-    (char) => char.charCodeAt(0) > 127,
-  );
+  return [...hostname].some((char) => char.charCodeAt(0) > 127);
 }
 
 /* -----------------------------
@@ -126,9 +121,7 @@ function hasEmbeddedCredentials(url: URL): boolean {
    4. BRAND IMPERSONATION
 ----------------------------- */
 
-function getBrandImpersonation(
-  hostname: string,
-): string | null {
+function getBrandImpersonation(hostname: string): string | null {
   const normalizedHostname = hostname.toLowerCase();
 
   for (const brand of BRANDS) {
@@ -136,8 +129,7 @@ function getBrandImpersonation(
       continue;
     }
 
-    const trustedDomains =
-      TRUSTED_BRAND_DOMAINS[brand] ?? [];
+    const trustedDomains = TRUSTED_BRAND_DOMAINS[brand] ?? [];
 
     const isTrusted = trustedDomains.some(
       (domain) =>
@@ -170,12 +162,9 @@ function getDangerousExtensions(url: URL): string[] {
 ----------------------------- */
 
 function getSuspiciousKeywords(url: URL): string[] {
-  const urlText =
-    `${url.hostname}${url.pathname}${url.search}`.toLowerCase();
+  const urlText = `${url.hostname}${url.pathname}${url.search}`.toLowerCase();
 
-  return SUSPICIOUS_KEYWORDS.filter((keyword) =>
-    urlText.includes(keyword),
-  );
+  return SUSPICIOUS_KEYWORDS.filter((keyword) => urlText.includes(keyword));
 }
 
 /* -----------------------------
@@ -192,15 +181,13 @@ function getSubdomainCount(hostname: string): number {
    CHECK ONE URL
 ----------------------------- */
 function normalizeUrl(urlString: string): string {
-  return /^https?:\/\//i.test(urlString)
-    ? urlString
-    : `http://${urlString}`;
+  return /^https?:\/\//i.test(urlString) ? urlString : `http://${urlString}`;
 }
 function checkUrl(urlString: string): Signal[] {
   let url: URL;
 
   try {
-    url = new URL (normalizeUrl(urlString));
+    url = new URL(normalizeUrl(urlString));
   } catch {
     return [
       createSignal(
@@ -270,8 +257,7 @@ function checkUrl(urlString: string): Signal[] {
 
   /* 4. Brand impersonation */
 
-  const impersonatedBrand =
-    getBrandImpersonation(hostname);
+  const impersonatedBrand = getBrandImpersonation(hostname);
 
   if (impersonatedBrand) {
     signals.push(
@@ -286,8 +272,7 @@ function checkUrl(urlString: string): Signal[] {
 
   /* 5. Dangerous file extension */
 
-  const dangerousExtensions =
-    getDangerousExtensions(url);
+  const dangerousExtensions = getDangerousExtensions(url);
 
   if (dangerousExtensions.length > 0) {
     signals.push(
@@ -302,8 +287,7 @@ function checkUrl(urlString: string): Signal[] {
 
   /* 6. Suspicious keywords */
 
-  const suspiciousKeywords =
-    getSuspiciousKeywords(url);
+  const suspiciousKeywords = getSuspiciousKeywords(url);
 
   if (suspiciousKeywords.length > 0) {
     signals.push(
@@ -318,8 +302,7 @@ function checkUrl(urlString: string): Signal[] {
 
   /* 7. Excessive subdomains */
 
-  const subdomainCount =
-    getSubdomainCount(hostname);
+  const subdomainCount = getSubdomainCount(hostname);
 
   if (subdomainCount >= 3) {
     signals.push(
@@ -338,9 +321,67 @@ function checkUrl(urlString: string): Signal[] {
 /* -----------------------------
    CHECK ALL URLs
 ----------------------------- */
+interface SafeBrowsingResponse {
+  matches?: {
+    threatType: string;
+    platformType: string;
+    threat: {
+      url: string;
+    };
+  }[];
+}
+const checkSafeBrowsing = async (url: string): Promise<Signal[]> => {
+  const SAFE_BROWSING_URL = `https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${process.env.GOOGLE_SAFE_BROWSING_API}`;
 
-export function checkUrls(urls: string[]): Signal[] {
+  const requestBody = {
+    client: { clientId: process.env.GOOGLE_CLIENT_ID, clientVersion: "1.0.0" },
+    threatInfo: {
+      threatTypes: [
+        "MALWARE",
+        "SOCIAL_ENGINEERING",
+        "UNWANTED_SOFTWARE",
+        "POTENTIALLY_HARMFUL_APPLICATION",
+      ],
+      platformTypes: ["ANY_PLATFORM"],
+      threatEntryTypes: ["URL"],
+      threatEntries: [{ url }],
+    },
+  };
+  try {
+    const response = await axios.post<SafeBrowsingResponse>(
+      SAFE_BROWSING_URL,
+      requestBody,
+    );
+    const matches = response.data.matches ?? [];
+    console.log("GOOGLE SAFE Response", response.data);
+    
+
+    if (matches.length === 0) return [];
+
+    return matches.map((match) =>
+      createSignal(
+        "Unsafe URL",
+        "high",
+        `Google safe browsing identified this URL as ${match.threatType}`,
+        [url],
+      ),
+    );
+  } catch (error) {
+    console.error("Safe Browsing check failed:", error);
+
+    return [];
+  }
+};
+export async function checkUrls(urls: string[]):Promise<Signal[]> {
   const uniqueUrls = [...new Set(urls)];
 
-  return uniqueUrls.flatMap(checkUrl);
+  const results = await Promise.all(
+    uniqueUrls.map(async (url) => {
+      const localSignal = checkUrl(url);
+      const SafeBrowsingSignal = await checkSafeBrowsing(url);
+
+      return [...localSignal, ...SafeBrowsingSignal];
+    }),
+  );
+  return results.flat();
 }

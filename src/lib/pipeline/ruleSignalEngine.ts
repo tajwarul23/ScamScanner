@@ -147,7 +147,7 @@ const checkDirectAccountNumber = (
 
 
 //MAIN RULE ENGINE
-export const ruleSignalEngine = (evidenceResults : ExtractionResult[]) : Signal[] => {
+export const ruleSignalEngine = async(evidenceResults : ExtractionResult[]) : Promise<Signal[]> => {
 
     //combining the evidence
     const evidence : CombinedEvidence = {
@@ -205,7 +205,7 @@ export const ruleSignalEngine = (evidenceResults : ExtractionResult[]) : Signal[
     (signal): signal is Signal => signal !== null
   );
 
-  const urlSignals = checkUrls(evidence.urls);
+  const urlSignals = await checkUrls(evidence.urls);
     return[
         ...keywordSignals,
         ...directSignals,

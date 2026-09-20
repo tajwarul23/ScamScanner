@@ -3,7 +3,6 @@ import { z } from "zod";
 import type { ExtractionResult } from "./extractEvidence";
 import { Signal } from "./ruleSignalEngine";
 
-
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const GROQ_TEXT_MODEL = "openai/gpt-oss-120b";
 
@@ -20,30 +19,37 @@ const riskRank = {
   low: 0,
   medium: 1,
   high: 2,
-}as const;
+} as const;
 const riskFromRank = ["low", "medium", "high"] as const;
-const calculateRisk = (riskLevel : CaseReport["riskLevel"], signals: Signal[]) : CaseReport["riskLevel"] =>{
-
-  if(signals.length === 0) return riskLevel;
-  const highestSignal = Math.max(...signals.map((signal) =>riskRank[signal.severity] ));
+const calculateRisk = (
+  riskLevel: CaseReport["riskLevel"],
+  signals: Signal[],
+): CaseReport["riskLevel"] => {
+  if (signals.length === 0) return riskLevel;
+  const highestSignal = Math.max(
+    ...signals.map((signal) => riskRank[signal.severity]),
+  );
 
   const finalRank = Math.max(highestSignal, riskRank[riskLevel]);
   return riskFromRank[finalRank];
-}
+};
 export const finalizeCase = async (
   evidenceResult: ExtractionResult[],
   signals: Signal[],
 ): Promise<CaseReport> => {
-  const combined = {
-    names: evidenceResult.flatMap((r) => r.names),
-    companies: evidenceResult.flatMap((r) => r.companies),
-    amounts: evidenceResult.flatMap((r) => r.amounts),
-    dates: evidenceResult.flatMap((r) => r.dates),
-    claims: evidenceResult.flatMap((r) => r.claims),
-    phoneNumbers: evidenceResult.flatMap((r) => r.phoneNumbers),
-    accountNumbers: evidenceResult.flatMap((r) => r.accountNumbers),
-    urls: evidenceResult.flatMap((r) =>r.urls)
-  };
+  const evidenceBlocks = evidenceResult.map(
+    (r, i) => `Evidence #${i + 1}
+  Names: ${r.names},
+  companies:${r.companies},
+  Amounts: ${r.amounts},
+  Dates: ${r.dates},
+  Claims: ${r.claims},
+  PhoneNumbers: ${r.phoneNumbers},
+  AccountNumbers: ${r.accountNumbers},
+  URLs: ${r.urls}
+
+  `,
+  ).join('\n\n');
   const signalsText = signals.length
     ? signals
         .map(
@@ -53,14 +59,8 @@ export const finalizeCase = async (
     : "none detected";
   const prompt = `You are summarizing a potential scam case based on extracted evidence from one or more uploaded files. A rule-based signal detection pass has already run — weigh it alongside the evidence below.
 
-Names mentioned: ${combined.names.join(", ") || "none"}
-Companies mentioned: ${combined.companies.join(", ") || "none"}
-Amounts mentioned: ${combined.amounts.join(", ") || "none"}
-Dates mentioned: ${combined.dates.join(", ") || "none"}
-Claims made: ${combined.claims.join("; ") || "none"}
-mentioned phoneNumbers: ${combined.phoneNumbers.join(",") || "none"},
-mentioned accountNumbers: ${combined.accountNumbers.join(",") || "none"},
-mentioned urls: ${combined.urls.join(",") || "none"},
+Evidence:
+${evidenceBlocks}
 Rule-based signals detected:
 ${signalsText}
 Return JSON with this exact shape:
@@ -83,8 +83,8 @@ Return JSON with this exact shape:
       `Groq report didn't match expected shape: ${JSON.stringify(parsed.error.issues)}`,
     );
   }
-  return{
+  return {
     ...parsed.data,
-    riskLevel: calculateRisk(parsed.data.riskLevel, signals)
-  }
+    riskLevel: calculateRisk(parsed.data.riskLevel, signals),
+  };
 };

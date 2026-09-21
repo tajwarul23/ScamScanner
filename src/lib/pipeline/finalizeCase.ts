@@ -36,9 +36,11 @@ const calculateRisk = (
 export const finalizeCase = async (
   evidenceResult: ExtractionResult[],
   signals: Signal[],
+  context?: string,
 ): Promise<CaseReport> => {
-  const evidenceBlocks = evidenceResult.map(
-    (r, i) => `Evidence #${i + 1}
+  const evidenceBlocks = evidenceResult
+    .map(
+      (r, i) => `Evidence #${i + 1}
   Names: ${r.names},
   companies:${r.companies},
   Amounts: ${r.amounts},
@@ -46,10 +48,15 @@ export const finalizeCase = async (
   Claims: ${r.claims},
   PhoneNumbers: ${r.phoneNumbers},
   AccountNumbers: ${r.accountNumbers},
-  URLs: ${r.urls}
+  TransactionIds: ${r.transactionIds},
+  ReferenceIds: ${r.referenceIds},
+  URLs: ${r.urls},
+  emails: ${r.emails},
+  handles: ${r.handles}
 
   `,
-  ).join('\n\n');
+    )
+    .join("\n\n");
   const signalsText = signals.length
     ? signals
         .map(
@@ -63,6 +70,7 @@ Evidence:
 ${evidenceBlocks}
 Rule-based signals detected:
 ${signalsText}
+${context?.trim() ? `User's own description of what happened (not extracted evidence — may include their own interpretation):\n${context}\n` : ""}
 Return JSON with this exact shape:
 {
   "title": "a short, descriptive 6-10 word title, no quotes, no trailing punctuation",

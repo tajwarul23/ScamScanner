@@ -19,7 +19,11 @@ interface CombinedEvidence {
     claims: string[];
     phoneNumbers: string[];
     accountNumbers: string[];
-    urls: string[]
+    transactionIds: string[];
+    referenceIds: string[];
+    urls: string[];
+    emails: string[];
+    handles: string[];
 }
 
 type SourceName = "claims" | "dates" | "amounts" | "claimsAndDates" | "claimsAndAmounts";
@@ -144,7 +148,24 @@ const checkDirectAccountNumber = (
   };
 };
 
+//direct rule for transaction/reference identifiers
+const checkFinancialIdentifiers = (
+  evidence: CombinedEvidence
+): Signal | null => {
+  const matches = [...evidence.transactionIds, ...evidence.referenceIds];
+  if (matches.length === 0) {
+    return null;
+  }
 
+  return {
+    id: "financial-identifiers-shared",
+    label: "Financial identifiers shared",
+    severity: "low",
+    description:
+      "A transaction or reference ID was shared. If a payment was already made, use this identifier to trace it with your bank/wallet provider or when reporting to authorities.",
+    matchedEvidence: matches,
+  };
+};
 
 //MAIN RULE ENGINE
 export const ruleSignalEngine = async(evidenceResults : ExtractionResult[]) : Promise<Signal[]> => {
@@ -163,13 +184,21 @@ export const ruleSignalEngine = async(evidenceResults : ExtractionResult[]) : Pr
     accountNumbers: evidenceResults.flatMap(
       (result) => result.accountNumbers
     ),
+    transactionIds: evidenceResults.flatMap(
+      (result) => result.transactionIds
+    ),
+    referenceIds: evidenceResults.flatMap(
+      (result) => result.referenceIds
+    ),
+    emails: evidenceResults.flatMap((result) => result.emails),
+    handles: evidenceResults.flatMap((result) => result.handles),
     }
     //prepare the source object for matcher function
     const sources : Record<SourceName, string[]> ={
          claims: evidence.claims,
     dates: evidence.dates,
     amounts: evidence.amounts,
-
+      
     claimsAndDates: [
       ...evidence.claims,
       ...evidence.dates,
@@ -201,6 +230,7 @@ export const ruleSignalEngine = async(evidenceResults : ExtractionResult[]) : Pr
     //run the direct rule
      const directSignals = [
     checkDirectAccountNumber(evidence),
+    checkFinancialIdentifiers(evidence),
   ].filter(
     (signal): signal is Signal => signal !== null
   );

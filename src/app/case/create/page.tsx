@@ -12,18 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { toast } from "sonner";
 
-import { Loader2Icon } from "lucide-react";
-
-import type { ExtractionResult } from "@/lib/pipeline/extractEvidence";
 import { compressImage } from "@/lib/pipeline/compressImage";
 import { createCaseAction } from "@/actions/create-case-actions";
 
 import RedirectLoading from "@/components/Redirect/redirect";
-import { unstable_rethrow } from "next/navigation";
-import { start } from "repl";
-import { Redressed } from "next/font/google";
-
-
 
 const ACCEPTED_FILE_TYPES = [
   "image/png",
@@ -34,49 +26,46 @@ const ACCEPTED_FILE_TYPES = [
   "text/plain",
 ];
 const MAX_FILE_SIZE_MB = 10;
-const MAX_FILES = 8;
+const MAX_FILES = 3;
 
-const EXTRACTABLE_TYPES = [
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-  "application/pdf",
-   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-   "text/plain",
-];
+const formSchema = z
+  .object({
+    context: z
+      .string()
+      .max(2000, "Keep context under 2000 characters")
+      .optional(),
+    textEvidence: z
+      .string()
+      .max(8000, "keep pasted text under 8000 characters")
+      .optional(),
+    files: z
+      .array(z.instanceof(File))
+      .max(MAX_FILES, "You can attach up to 3 files")
+      .refine(
+        (files) => files.every((f) => ACCEPTED_FILE_TYPES.includes(f.type)),
+        "Only images, PDF, DOCX, or text files are allowed",
+      )
+      .refine(
+        (files) => files.every((f) => f.size <= MAX_FILE_SIZE_MB * 1024 * 1024),
+        "Each file must be under 10MB",
+      ),
+  })
+  .superRefine((data, ctx) => {
+    const hasFiles = data.files.length > 0;
+    const hasTextEvidence = (data.textEvidence?.trim().length ?? 0) >= 20;
 
-
-
-type FileResult =
-  | { status: "loading" }
-  | { status: "skipped" }
-  | { status: "success"; data: ExtractionResult }
-  | { status: "error"; error: string };
-const formSchema = z.object({
-  context: z
-    .string()
-    .max(2000, "Keep context under 2000 characters")
-    .optional(),
-  files: z
-    .array(z.instanceof(File))
-    .min(1, "Attach at least one piece of evidence")
-    .max(MAX_FILES, "You can attach up to 8 files")
-    .refine(
-      (files) => files.every((f) => ACCEPTED_FILE_TYPES.includes(f.type)),
-      "Only images, PDF, DOCX, or text files are allowed",
-    )
-    .refine(
-      (files) => files.every((f) => f.size <= MAX_FILE_SIZE_MB * 1024 * 1024),
-      "Each file must be under 10MB",
-    ),
-});
+    if (!hasFiles && !hasTextEvidence) {
+      const message =
+        "Attach at least one evidence file, or paste some text evidence (at least 20 characters)";
+      ctx.addIssue({ code: "custom", message, path: ["files"] });
+      ctx.addIssue({ code: "custom", message, path: ["textEvidence"] });
+    }
+  });
 
 type FormValues = z.infer<typeof formSchema>;
 
 export default function NewInvestigationPage() {
-  const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [results, setResults] = useState<Record<string, FileResult>>({});
 
   const handleDragOver = (event: React.DragEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -98,12 +87,12 @@ export default function NewInvestigationPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { context: "", files: [] },
+    defaultValues: { context: "", textEvidence: "", files: [] },
   });
 
   const files = form.watch("files");
 
-  const addFiles = async(fileList: FileList | null) => {
+  const addFiles = async (fileList: FileList | null) => {
     if (!fileList) return;
     const incoming = Array.from(fileList);
 
@@ -155,7 +144,7 @@ export default function NewInvestigationPage() {
     }
 
     if (accepted.length > 0) {
-        const compressed = await Promise.all(accepted.map(compressImage))
+      const compressed = await Promise.all(accepted.map(compressImage));
       form.setValue("files", [...files, ...compressed], {
         shouldValidate: true,
       });
@@ -170,30 +159,28 @@ export default function NewInvestigationPage() {
     );
   };
   const [isPending, startTransition] = useTransition();
- const onSubmit = async (values: FormValues) => {
-  
- const fd = new FormData();
- values.files.forEach((file)=>{
-  fd.append("files", file)
- });
- if(values.context)fd.append("context", values.context);
+  const onSubmit = async (values: FormValues) => {
+    const fd = new FormData();
+    values.files.forEach((file) => {
+      fd.append("files", file);
+    });
+    if (values.context) fd.append("context", values.context);
+    if (values.textEvidence) fd.append("textEvidence", values.textEvidence);
 
-   startTransition(async () => {
-    const result = await createCaseAction(fd);
+    startTransition(async () => {
+      const result = await createCaseAction(fd);
 
-    if (result && !result.success) {
-      toast.error(result.error, {
-        position: "top-center",
-      });
-    }
-  });
+      if (result && !result.success) {
+        toast.error(result.error, {
+          position: "top-center",
+        });
+      }
+    });
+  };
 
-};
-
-
-if(isPending){
-  return <RedirectLoading/>
-}
+  if (isPending) {
+    return <RedirectLoading />;
+  }
 
   return (
     <main className="flex flex-1 justify-center px-6 py-10 md:px-12">
@@ -207,8 +194,11 @@ if(isPending){
           </h1>
         </div>
 
-        <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.log("VALIDATION ERRORS", errors))}>
-         
+        <form
+          onSubmit={form.handleSubmit(onSubmit, (errors) =>
+            console.log("VALIDATION ERRORS", errors),
+          )}
+        >
           <FieldGroup>
             <Controller
               name="files"
@@ -244,7 +234,7 @@ if(isPending){
                       Drag files here, or click to browse
                     </p>
                     <p className="text-[12.5px] text-muted-foreground">
-                      Screenshots, PDF, DOCX, or pasted text
+                      Screenshots, PDF, or DOCX
                     </p>
                   </button>
                   {fieldState.error && (
@@ -290,6 +280,33 @@ if(isPending){
             )}
 
             <Controller
+              name="textEvidence"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field>
+                  <FieldLabel
+                    htmlFor={field.name}
+                    className="text-[12.5px] font-semibold text-muted-foreground"
+                  >
+                    Paste text evidence
+                  </FieldLabel>
+                  <Textarea
+                    {...field}
+                    id={field.name}
+                    aria-invalid={fieldState.invalid}
+                    placeholder="Paste the exact scam message, email, or chat text here..."
+                    className="min-h-[90px] w-full h-32 resize-none"
+                  />
+                  {fieldState.error && (
+                    <p className="text-sm text-red-500">
+                      {fieldState.error.message}
+                    </p>
+                  )}
+                </Field>
+              )}
+            />
+
+            <Controller
               name="context"
               control={form.control}
               render={({ field, fieldState }) => (
@@ -304,7 +321,7 @@ if(isPending){
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    placeholder="Add any relevant context not included in the files..."
+                    placeholder="Add background info — why you're suspicious, how you were contacted, etc."
                     className="min-h-[90px] w-full h-32 resize-none"
                   />
                   {fieldState.error && (
@@ -328,62 +345,6 @@ if(isPending){
                 Start Investigation
               </Button>
             </div>
-
-            {/* report */}
-            {Object.keys(results).length > 0 && (
-              <div className="flex flex-col gap-3">
-                <p className="font-mono text-xs uppercase tracking-[0.09em] text-primary">
-                  Extraction preview
-                </p>
-                {files.map((file, index) => {
-                  const key = `${file.name}-${index}`;
-                  const result = results[key];
-                  if (!result) return null;
-
-                  return (
-                    <div
-                      key={key}
-                      className="rounded-lg border border-border bg-card p-4"
-                    >
-                      <p className="text-[13.5px] font-semibold">{file.name}</p>
-                      {result.status === "loading" && (
-                        <p className="mt-1 flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
-                          <Loader2Icon className="size-3.5 animate-spin" />{" "}
-                          Extracting…
-                        </p>
-                      )}
-                      {result.status === "skipped" && (
-                        <p className="mt-1 text-[12.5px] text-muted-foreground">
-                          Text extraction for this file type isn&apos;t wired up
-                          yet.
-                        </p>
-                      )}
-                      {result.status === "error" && (
-                        <p className="mt-1 text-[12.5px] text-red-500">
-                          {result.error}
-                        </p>
-                      )}
-                      {result.status === "success" && (
-                        <dl className="mt-2 flex flex-col gap-1.5 text-[12.5px]">
-                          {Object.entries(result.data).map(([field, values]) =>
-                            values.length > 0 ? (
-                              <div key={field} className="flex gap-2">
-                                <dt className="w-20 shrink-0 font-medium capitalize text-muted-foreground">
-                                  {field}
-                                </dt>
-                                <dd className="text-foreground">
-                                  {values.join(", ")}
-                                </dd>
-                              </div>
-                            ) : null,
-                          )}
-                        </dl>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </FieldGroup>
         </form>
       </div>

@@ -9,18 +9,24 @@ cloudinary.config({
 interface UploadOptions {
   folder?: string;
   publicId?: string;
+  mimeType?: string;
 }
 
 export function uploadEvidenceFile(
   buffer: Buffer,
   options: UploadOptions = {}
 ): Promise<string> {
+  // Cloudinary classifies PDFs as an "image" resource by default, but new
+  // accounts block delivery of PDF/ZIP through the image endpoint for
+  // security. Uploading non-image evidence as "raw" avoids that restriction.
+  const resourceType = options.mimeType?.startsWith("image/") ? "image" : "raw";
+
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: options.folder ?? "scam-scanner/evidence",
         public_id: options.publicId,
-        resource_type: "auto",
+        resource_type: resourceType,
       },
       (error, result) => {
         if (error || !result) {

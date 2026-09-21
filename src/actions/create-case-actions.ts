@@ -118,11 +118,13 @@ const processUpload = async (
   evidenceItemId: string,
   caseId: string,
   buffer: Buffer,
+  mimeType: string,
 ) => {
   try {
     const url = await uploadEvidenceFile(buffer, {
       folder: `scam-scanner/cases/${caseId}`,
       publicId: evidenceItemId,
+      mimeType,
     });
     await db
       .update(evidenceItems)
@@ -229,7 +231,7 @@ export const createCaseAction = async (
       processExtraction(item.id, newCase.id, source.buffer, source.mimeType),
     );
     if (source.isUpload) {
-      after(() => processUpload(item.id, newCase.id, source.buffer));
+      after(() => processUpload(item.id, newCase.id, source.buffer, source.mimeType));
     }
   });
 

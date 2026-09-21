@@ -99,6 +99,12 @@ export const extractionEnum = pgEnum("extraction_enum", [
   "skipped",
 ]);
 
+type Contradiction = {
+  description: string;
+  evidence: string[];
+  severity: "low" | "medium" | "high";
+};
+
 export const cases = pgTable(
   "cases",
   {
@@ -112,6 +118,7 @@ export const cases = pgTable(
     riskLevel: riskEnum("risk"),
     signals: jsonb("signals").$type<Signal[]>(),
     summary: text("summary"),
+    contradictions: jsonb("contradictions").$type<Contradiction[]>(),
     verifySteps: jsonb("verify_steps").$type<string[]>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")

@@ -101,6 +101,7 @@ const generateFinalResponse = async (caseId: string) => {
         verifySteps: report.verifySteps,
         signals: signals,
         status: "ready",
+        contradictions: report.contradictions
       })
       .where(eq(cases.id, caseId));
   } catch (err) {

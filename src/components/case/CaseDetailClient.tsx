@@ -87,16 +87,30 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
               </div>
             )}
 
-            {caseData.verifySteps && caseData.verifySteps.length > 0 && (
+            {caseData.contradictions && caseData.contradictions.length > 0 && (
               <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5">
-                <h3 className="font-serif text-base font-semibold">What to verify next</h3>
+                <h3 className="font-serif text-base font-semibold">Contradictions</h3>
                 <div className="flex flex-col gap-2.5">
-                  {caseData.verifySteps.map((step, i) => (
-                    <div key={i} className="flex items-start gap-2.5">
-                      <span className="mt-0.5 size-4 shrink-0 rounded border-[1.5px] border-border" />
-                      <span className="text-[13.5px] text-foreground">{step}</span>
-                    </div>
-                  ))}
+                  {[...caseData.contradictions]
+                    .sort((a, b) => severityRank[b.severity] - severityRank[a.severity])
+                    .map((contradiction, i) => (
+                      <div
+                        key={i}
+                        className="flex flex-col gap-1.5 rounded-md border border-border bg-background p-3"
+                      >
+                        <span
+                          className={`inline-flex w-fit items-center rounded-md px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wide ${riskStyles[contradiction.severity]}`}
+                        >
+                          {contradiction.severity}
+                        </span>
+                        <p className="text-[13px] text-foreground">
+                          {contradiction.description}
+                        </p>
+                        <p className="font-mono text-[11px] text-muted-foreground">
+                          Evidence: {contradiction.evidence.join(" vs. ")}
+                        </p>
+                      </div>
+                    ))}
                 </div>
               </div>
             )}
@@ -130,6 +144,20 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
                         </p>
                       </div>
                     ))}
+                </div>
+              </div>
+            )}
+
+            {caseData.verifySteps && caseData.verifySteps.length > 0 && (
+              <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5">
+                <h3 className="font-serif text-base font-semibold">What to verify next</h3>
+                <div className="flex flex-col gap-2.5">
+                  {caseData.verifySteps.map((step, i) => (
+                    <div key={i} className="flex items-start gap-2.5">
+                      <span className="mt-0.5 size-4 shrink-0 rounded border-[1.5px] border-border" />
+                      <span className="text-[13.5px] text-foreground">{step}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

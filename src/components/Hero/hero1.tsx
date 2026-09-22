@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, Globe } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 const verifySteps = [
   "Confirm the company's RJSC registration",
@@ -29,18 +29,7 @@ const Hero1 = () => {
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="h-auto px-5 py-3.5 text-[15px]">
-                <Link href="/feed">
-                  <Globe/>
-                  Browse Feed
-                  
-                </Link>
-              </Button>
             </div>
-            <p className="mt-1 text-[13.5px] leading-relaxed text-muted-foreground/80">
-              Every case in the public feed has names, companies, and numbers
-              stripped — only the scam pattern is ever shared.
-            </p>
           </div>
 
           <div className="relative">

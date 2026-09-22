@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { BackButton } from "@/components/ui/back-button";
 import { getCaseData, type CaseData } from "@/actions/get-case-action";
 import type { Signal } from "@/lib/pipeline/ruleSignalEngine";
 
@@ -112,7 +113,7 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
     <main className="flex flex-1 justify-center px-6 py-10 md:px-12">
       <div className="flex w-full max-w-[760px] flex-col gap-6">
         <div>
-
+          <BackButton />
           <h1 className="mt-2 font-serif text-3xl font-semibold tracking-tight">
             {caseData.title ?? "Generating report…"}
           </h1>

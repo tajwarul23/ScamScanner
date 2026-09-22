@@ -4,12 +4,11 @@ import { Search } from "lucide-react";
 const productLinks = [
   { href: "#how", label: "How it works" },
   { href: "#features", label: "Features" },
-  { href: "#feed", label: "Public feed" },
 ];
 
 const accountLinks = [
   { href: "/login", label: "Log in" },
-  { href: "/signup", label: "Get started" },
+  
 ];
 
 const Footer = () => {

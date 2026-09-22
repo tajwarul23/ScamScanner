@@ -17,7 +17,7 @@ const Cta = () => {
           size="lg"
           className="mt-1.5 h-auto bg-primary-foreground px-5 py-3.5 text-[15px] text-accent-dark hover:bg-primary-foreground/90"
         >
-          <Link href="/signup">
+          <Link href="/case/create">
             Get started
             <ArrowRight className="size-4" />
           </Link>

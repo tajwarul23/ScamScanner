@@ -187,7 +187,15 @@ const parseExtraction = (
   raw: string | null | undefined,
   provider: string,
 ): ExtractionResult => {
-  const parsed = extractionSchema.safeParse(JSON.parse(raw ?? "{}"));
+  let json: unknown;
+  try {
+    json = JSON.parse(raw ?? "{}");
+  } catch (err) {
+    console.error(`${provider} returned invalid JSON:`, raw);
+    throw err;
+  }
+
+  const parsed = extractionSchema.safeParse(json);
   if (!parsed.success) {
     throw new Error(
       `${provider}'s output didn't match the expected shape: ${JSON.stringify(parsed.error?.issues)}`,

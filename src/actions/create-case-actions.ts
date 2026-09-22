@@ -11,6 +11,7 @@ import {
 import { finalizeCase } from "@/lib/pipeline/finalizeCase";
 import { ruleSignalEngine } from "@/lib/pipeline/ruleSignalEngine";
 import { uploadEvidenceFile } from "@/lib/pipeline/uploadEvidence";
+import { checkCaseRateLimit } from "@/lib/rate-limit/case-rate-limit";
 import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -89,9 +90,9 @@ const generateFinalResponse = async (caseId: string) => {
     const cleanResults = successFulResults.flatMap((r) => (r ? [r] : []));
     const signals = await ruleSignalEngine(cleanResults);
     const report = await finalizeCase(cleanResults, signals, claimed[0].context ?? undefined);
-    // console.log("Signals", signals);
-    // console.log("Result", cleanResults);
-    // console.log("Final Report", report)
+    // console.log("Signals ➡️", signals);
+    // console.log("Result ➡️", cleanResults);
+    // console.log("Final Report ➡️", report)
     await db
       .update(cases)
       .set({
@@ -148,6 +149,22 @@ export const createCaseAction = async (
       success: false,
       error: "You must be signed in to start an investigation",
     };
+  }
+  const userId = session?.user.id;
+  const rateLimit = await checkCaseRateLimit(userId);
+  if(!rateLimit.allowed){
+    if(rateLimit.reason === "TEN_MIN_LIMIT"){
+      return {
+        success:false,
+        error:`You can create up to 3 investigations every 10 minutes. Please Retry again ${rateLimit.retryAt}`,
+        
+      }
+    }
+     return {
+        success:false,
+        error:`You can create up to 8 investigations in 24 hours. Please Retry again ${rateLimit.retryAt}`,
+        
+      }
   }
 
   const files = formData

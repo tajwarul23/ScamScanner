@@ -173,6 +173,7 @@ export default function NewInvestigationPage() {
       if (result && !result.success) {
         toast.error(result.error, {
           position: "top-center",
+          duration: 60000,
         });
       }
     });

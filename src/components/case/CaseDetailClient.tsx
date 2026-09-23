@@ -269,9 +269,10 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
           <TabsContent value="evidence" className="flex flex-col gap-2 pt-4">
             {caseData.evidenceItems.map((item) => {
               const isImage = item.mimeType.startsWith("image/");
+              const isText = Boolean(item.rawText);
               const Icon = isImage ? FileImage : FileText;
               const status = extractionStatusConfig[item.extractionStatus];
-              const isViewable = Boolean(item.fileUrl);
+              const isViewable = Boolean(item.fileUrl) || isText;
 
               const rowContent = (
                 <>
@@ -318,7 +319,7 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
                 "flex w-full items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors" +
                 (isViewable ? " hover:border-primary/40 hover:bg-accent/40" : "");
 
-              if (isViewable && isImage) {
+              if (isViewable && (isImage || isText)) {
                 return (
                   <button
                     key={item.id}
@@ -365,6 +366,13 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
               alt={previewItem.fileName}
               className="max-h-[75vh] w-full bg-black/5 object-contain"
             />
+          )}
+          {!previewItem?.fileUrl && previewItem?.rawText && (
+            <div className="max-h-[75vh] overflow-y-auto p-4">
+              <p className="whitespace-pre-wrap text-sm text-foreground">
+                {previewItem.rawText}
+              </p>
+            </div>
           )}
           <div className="flex items-center justify-between gap-3 border-t border-border p-3">
             <span className="truncate text-sm text-foreground">{previewItem?.fileName}</span>

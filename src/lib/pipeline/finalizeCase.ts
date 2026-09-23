@@ -10,14 +10,21 @@ export const caseReportSchema = z.object({
   title: z.string(),
   summary: z.string(),
   riskLevel: z.enum(["low", "medium", "high"]),
+  contradictions: z
+    .array(
+      z.object({
+        description: z.string(),
+        evidence: z.array(
+          z.object({
+            source: z.string(),
+            statement: z.string(),
+          }),
+        ),
+        severity: z.enum(["low", "medium", "high"]),
+      }),
+    )
+    .default([]),
   verifySteps: z.array(z.string()).default([]),
-  contradictions: z.array(
-    z.object({
-      description: z.string(),
-      evidence: z.array(z.string()),
-      severity: z.enum(["low", "medium", "high"]),
-    }),
-  ).default([]),
 });
 
 export type CaseReport = z.infer<typeof caseReportSchema>;
@@ -146,16 +153,57 @@ IMPORTANT CONTRADICTION RULES:
 - Do not create a contradiction merely because information is missing from one
   evidence item.
 
+CONTRADICTION SEVERITY:
+
+Severity describes the importance of the contradiction or discrepancy itself.
+It does not automatically determine the overall case risk level.
+
+- low:
+  Minor discrepancy or ambiguity that has limited practical impact.
+  Examples include small wording differences, non-material differences,
+  or discrepancies that are unlikely to affect the outcome of the case.
+
+- medium:
+  A meaningful discrepancy that could affect an important fact, transaction,
+  payment, identity, date, or outcome and should be independently verified.
+  Examples include:
+  - different transaction amounts for what appears to be the same transaction
+  - different payment dates for the same transaction
+  - different payment recipients or account identifiers
+  - conflicting claims about whether a payment was received
+  - a user's reported amount differing from the amount recorded in evidence
+
+- high:
+  A major contradiction involving a critical fact where the conflicting
+  information could materially affect a significant financial transaction,
+  identity, payment destination, or other important outcome.
+  High severity should generally require either a major contradiction or
+  a contradiction combined with strong supporting evidence.
+
+When assigning contradiction severity:
+- Consider the material importance of the discrepancy, not merely the size
+  of the textual difference.
+- A contradiction involving money, identity, or payment information is not
+  automatically high severity.
+- Do not increase contradiction severity merely because the case contains
+  other warning signs.
+- Do not use contradiction severity as a substitute for overall risk.
+
 USER CONTEXT:
 
-The user's description is separate from the uploaded evidence.
+If the user's description conflicts with the uploaded evidence, compare the
+two sources explicitly.
 
-Use it to identify possible discrepancies with the evidence, but do not treat it
-as extracted evidence.
+Treat the user's description as a separate source called "User context".
+Do not convert the user's claims into extracted evidence.
 
-If the user's description conflicts with the uploaded evidence, report that
-separately as a contradiction or discrepancy and clearly identify that one side
-comes from the user.
+When presenting a conflict:
+- clearly identify which statement comes from the uploaded evidence
+- clearly identify which statement comes from the user
+- do not assume either statement is correct
+- do not describe the user's statement as a fact established by the evidence
+- do not describe the evidence as proving what actually happened if it only
+  records a transaction, message, or claim
 
 REASONING:
 
@@ -172,7 +220,15 @@ Before producing the JSON, internally analyze:
 Do not output this internal analysis.
 
 RISK:
+IMPORTANT:
+A single contradiction or discrepancy does not automatically determine the
+overall risk level.
 
+For example, a medium-severity financial discrepancy can still result in
+low overall risk if there are no other meaningful warning signs or evidence
+of harmful or deceptive behavior.
+
+Evaluate overall risk separately from contradiction severity.
 The risk level should represent the overall level of concern supported by the
 available information.
 
@@ -203,23 +259,40 @@ ${context}
 This is user-provided context, not extracted evidence.`
     : "No user-provided context was provided."
 }
-
+For contradiction evidence:
+- "source" must identify where the statement came from.
+- Use "Evidence #1", "Evidence #2", etc. for uploaded evidence.
+- Use "User context" when the statement comes from the user's description.
+- "statement" must contain the specific relevant statement from that source.
+- Do not label user context as Evidence.
 Return JSON with exactly this shape:
 
 {
   "title": "a short, descriptive 6-10 word title, no quotes, no trailing punctuation",
+
   "summary": "a 2-4 sentence plain-language summary grounded in the provided information",
+
   "riskLevel": "low" | "medium" | "high",
+
   "contradictions": [
     {
       "description": "a concise description of the contradiction or discrepancy",
+
       "evidence": [
-        "specific statement from Evidence #1",
-        "specific statement from Evidence #2"
+        {
+          "source": "Evidence #1",
+          "statement": "specific statement from Evidence #1"
+        },
+        {
+          "source": "Evidence #2",
+          "statement": "specific statement from Evidence #2"
+        }
       ],
+
       "severity": "low" | "medium" | "high"
     }
   ],
+
   "verifySteps": [
     "2-4 concrete, specific things to verify next"
   ]

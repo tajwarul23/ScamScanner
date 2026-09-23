@@ -224,31 +224,17 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
                             <p className="mb-3 text-base font-medium text-foreground">
                               {contradiction.description}
                             </p>
-                            {contradiction.evidence.length === 2 ? (
-                              <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
-                                <EvidenceQuote
-                                  label="Evidence #1"
-                                  text={contradiction.evidence[0]}
-                                />
-                                <span className="shrink-0 self-center font-mono text-xs font-bold text-muted-foreground">
-                                  VS
-                                </span>
-                                <EvidenceQuote
-                                  label="Evidence #2"
-                                  text={contradiction.evidence[1]}
-                                />
-                              </div>
-                            ) : (
+                            
                               <div className="flex flex-col gap-2">
                                 {contradiction.evidence.map((evidence, idx) => (
                                   <EvidenceQuote
                                     key={idx}
-                                    label={`Evidence #${idx + 1}`}
-                                    text={evidence}
+                                    label={`${evidence.source}`}
+                                    text={evidence.statement}
                                   />
                                 ))}
                               </div>
-                            )}
+                            
                           </div>
                         ))}
                     </div>

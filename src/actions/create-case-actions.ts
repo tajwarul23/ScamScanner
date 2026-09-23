@@ -190,6 +190,7 @@ export const createCaseAction = async (
     mimeType: string;
     buffer: Buffer;
     isUpload: boolean;
+    rawText?: string
   }[];
   try {
     [newCase] = await db
@@ -198,6 +199,7 @@ export const createCaseAction = async (
         userId: session.user.id,
         context: extraContext,
         status: "processing",
+        
       })
       .returning();
 
@@ -208,6 +210,7 @@ export const createCaseAction = async (
           mimeType: file.type,
           buffer: Buffer.from(await file.arrayBuffer()),
           isUpload: true,
+          
         })),
       )),
       ...(pastedTextEvidence
@@ -217,6 +220,8 @@ export const createCaseAction = async (
               mimeType: "text/plain",
               buffer: Buffer.from(pastedTextEvidence, "utf-8"),
               isUpload: false,
+              rawText: pastedTextEvidence
+              
             },
           ]
         : []),
@@ -230,6 +235,7 @@ export const createCaseAction = async (
           fileName: source.fileName,
           mimeType: source.mimeType,
           extractionStatus: "pending" as const,
+          rawText: source.rawText ?? null
         })),
       )
       .returning();

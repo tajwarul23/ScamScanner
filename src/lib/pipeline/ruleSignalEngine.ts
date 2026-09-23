@@ -131,19 +131,27 @@ const KEYWORD_RULE : keywordRule[] = [
 ]
 
 //direct rule for checking account number
+const ACCOUNT_NUMBER_ESCALATION_IDS = new Set(["upfront-fee", "urgency-pressure"]);
+
 const checkDirectAccountNumber = (
-  evidence: CombinedEvidence
+  evidence: CombinedEvidence,
+  otherSignalIds: Set<string>
 ): Signal | null => {
   if (evidence.accountNumbers.length === 0) {
     return null;
   }
 
+  const isEscalated = [...ACCOUNT_NUMBER_ESCALATION_IDS].some((id) =>
+    otherSignalIds.has(id)
+  );
+
   return {
     id: "direct-account-number",
     label: "Bank/account number shared directly",
-    severity: "medium",
-    description:
-      "An account number was shared directly and should be verified against the company's official payment information.",
+    severity: isEscalated ? "medium" : "low",
+    description: isEscalated
+      ? "An account number was shared directly alongside other pressure or fee-related warning signs — verify it independently before sending anything."
+      : "An account number was shared directly. This is common in legitimate payment requests too, but verify it against the company's or person's official details before paying.",
     matchedEvidence: evidence.accountNumbers,
   };
 };
@@ -228,8 +236,10 @@ export const ruleSignalEngine = async(evidenceResults : ExtractionResult[]) : Pr
         }
     );
     //run the direct rule
+    const keywordSignalIds = new Set(keywordSignals.map((s) => s.id));
+
      const directSignals = [
-    checkDirectAccountNumber(evidence),
+    checkDirectAccountNumber(evidence, keywordSignalIds),
     checkFinancialIdentifiers(evidence),
   ].filter(
     (signal): signal is Signal => signal !== null

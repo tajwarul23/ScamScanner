@@ -137,6 +137,7 @@ export const evidenceItems = pgTable("evidence_items", {
   fileName: text("file_name").notNull(),
   fileUrl: text("file_url"),
   mimeType: text("mimeType").notNull(),
+  rawText: text("raw_text"),
   extractionStatus: extractionEnum("extraction_status")
     .default("pending")
     .notNull(),

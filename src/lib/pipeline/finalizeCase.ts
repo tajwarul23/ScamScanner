@@ -5,7 +5,10 @@ import { Signal } from "./ruleSignalEngine";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const GROQ_TEXT_MODEL = "openai/gpt-oss-120b";
-
+export interface EvidenceForReport {
+  fileName: string;
+  data: ExtractionResult;
+}
 export const caseReportSchema = z.object({
   title: z.string(),
   summary: z.string(),
@@ -48,29 +51,54 @@ const calculateRisk = (
   return riskFromRank[finalRank];
 };
 export const finalizeCase = async (
-  evidenceResult: ExtractionResult[],
+  evidenceResult: EvidenceForReport[],
   signals: Signal[],
   context?: string,
 ): Promise<CaseReport> => {
-  const evidenceBlocks = evidenceResult
-    .map(
-      (r, i) => `
---- Evidence #${i + 1} ---
-Names: ${r.names.join(", ")}
-Companies: ${r.companies.join(", ")}
-Amounts: ${r.amounts.join(", ")}
-Dates: ${r.dates.join(", ")}
-Claims: ${r.claims.join("; ")}
-Phone numbers: ${r.phoneNumbers.join(", ")}
-Account numbers: ${r.accountNumbers.join(", ")}
-Transaction IDs: ${r.transactionIds.join(", ")}
-Reference IDs: ${r.referenceIds.join(", ")}
-URLs: ${r.urls.join(", ")}
-Emails: ${r.emails.join(", ")}
-Handles: ${r.handles.join(", ")}
-`,
-    )
-    .join("\n");
+ let evidenceNumber = 0;
+
+const evidenceBlocks = evidenceResult
+  .map((item) => {
+    const isPastedText =
+      item.fileName === "Pasted text evidence";
+
+    if (isPastedText) {
+      return `
+--- Pasted text evidence ---
+Names: ${item.data.names.join(", ")}
+Companies: ${item.data.companies.join(", ")}
+Amounts: ${item.data.amounts.join(", ")}
+Dates: ${item.data.dates.join(", ")}
+Claims: ${item.data.claims.join("; ")}
+Phone numbers: ${item.data.phoneNumbers.join(", ")}
+Account numbers: ${item.data.accountNumbers.join(", ")}
+Transaction IDs: ${item.data.transactionIds.join(", ")}
+Reference IDs: ${item.data.referenceIds.join(", ")}
+URLs: ${item.data.urls.join(", ")}
+Emails: ${item.data.emails.join(", ")}
+Handles: ${item.data.handles.join(", ")}
+`;
+    }
+
+    evidenceNumber++;
+
+    return `
+--- Evidence #${evidenceNumber} ---
+Names: ${item.data.names.join(", ")}
+Companies: ${item.data.companies.join(", ")}
+Amounts: ${item.data.amounts.join(", ")}
+Dates: ${item.data.dates.join(", ")}
+Claims: ${item.data.claims.join("; ")}
+Phone numbers: ${item.data.phoneNumbers.join(", ")}
+Account numbers: ${item.data.accountNumbers.join(", ")}
+Transaction IDs: ${item.data.transactionIds.join(", ")}
+Reference IDs: ${item.data.referenceIds.join(", ")}
+URLs: ${item.data.urls.join(", ")}
+Emails: ${item.data.emails.join(", ")}
+Handles: ${item.data.handles.join(", ")}
+`;
+  })
+  .join("\n");
   const signalsText = signals.length
     ? signals
         .map(
@@ -79,15 +107,30 @@ Handles: ${r.handles.join(", ")}
         .join("\n")
     : "none detected";
 
-  const prompt = `
+ const prompt = `
 You are the final reasoning and case-reporting system for a scam-analysis application.
 
 Your task is to analyze multiple pieces of extracted evidence, rule-based signals,
 and optional user-provided context and produce a concise, evidence-grounded case report.
 
-The evidence may contain screenshots, messages, invoices, receipts, documents,
-emails, payment records, or other sources. Each evidence item is labeled separately
-as Evidence #1, Evidence #2, etc.
+The case can contain three types of information:
+
+1. Uploaded evidence:
+   Screenshots, images, PDFs, documents, receipts, invoices, payment records,
+   or other files uploaded by the user. These are labeled Evidence #1,
+   Evidence #2, etc.
+
+2. Pasted text evidence:
+   Text the user enters into the "Pasted text evidence" field. This may be
+   a copied message, email, chat, receipt text, or the user's own description.
+   It is always labeled "Pasted text evidence".
+
+3. User context:
+   The user's own description entered into the "Extra context" field.
+   It is always labeled "User context".
+
+Treat these as separate sources and preserve their source labels when describing
+contradictions.
 
 IMPORTANT:
 - Do not invent facts that are not supported by the provided information.
@@ -143,15 +186,35 @@ IMPORTANT CONTRADICTION RULES:
   conflicting statements.
 - Do not treat merely different values as contradictions when they could
   legitimately refer to different transactions, people, dates, or events.
-- If two amounts are different but clearly belong to different transactions,
-  do not flag them as contradictory.
-- If the relationship between two values is unclear, describe it as a discrepancy
-  or unresolved difference rather than asserting a contradiction.
+- If a case contains only one transaction-like piece of uploaded evidence
+  and either User context or Pasted text evidence contains a first-person
+  statement describing a different amount paid or received, and nothing
+  indicates a separate transaction, treat the statements as referring to
+  the same event and flag the discrepancy.
+
+- Do not require the self-reported statement to contain a transaction ID,
+  date, sender, or reference number before connecting it to the matching
+  transaction-like evidence.
+
+- Only treat the statements as separate transactions when there is evidence
+  supporting that interpretation, such as a different date, sender, recipient,
+  transaction ID, or explicit mention of multiple transactions.
 - Never decide which conflicting value is correct unless the evidence itself
   establishes that.
 - Include the specific evidence items supporting each side of the contradiction.
 - Do not create a contradiction merely because information is missing from one
   evidence item.
+  - Do not require a self-reported statement (from pasted text evidence or user
+  context) to contain a transaction ID, date, or reference number before
+  connecting it to a matching transaction-like evidence item. Personal
+  accounts of what someone paid or received rarely include that level of
+  detail even when they are describing the exact same event.
+- If a case contains only one transaction-like piece of evidence (a single
+  payment, transfer, or cash-in record) and a self-reported statement
+  describes a different amount paid or received with nothing indicating a
+  separate transaction (no second date, sender, or explicit mention of
+  multiple payments), treat them as referring to the same event and flag the
+  discrepancy rather than dismissing it for lack of a matching identifier.
 
 CONTRADICTION SEVERITY:
 
@@ -189,21 +252,71 @@ When assigning contradiction severity:
   other warning signs.
 - Do not use contradiction severity as a substitute for overall risk.
 
+SELF-REPORTED PASTED TEXT:
+
+An input labeled "Pasted text evidence" was typed directly by the user.
+It may contain either:
+
+- the user's own account of what happened, or
+- copied/quoted content from another person, message, email, chat, receipt,
+  or other external source.
+
+For "Pasted text evidence":
+
+- If the text is clearly a first-person account of the user's own experience,
+  such as "I received 300 tk", "I sent 500", or "I was told to pay 1000",
+  treat it as a self-reported statement, not independently verified evidence.
+
+- If the text clearly represents a message, email, chat, receipt, or statement
+  from another party, treat it as external evidence.
+
+- If it is unclear whether the statement comes from the user or another party,
+  do not invent the speaker. Treat it as pasted text evidence and describe
+  the uncertainty when relevant.
+
+- A first-person statement in pasted text evidence can still be compared against
+  uploaded evidence. Do not dismiss a discrepancy merely because the statement
+  does not contain a transaction ID, date, or reference number.
+
+- If there is only one transaction-like uploaded evidence item and pasted text
+  contains a first-person statement about a different amount for what appears
+  to be the same event, flag the discrepancy unless there is evidence that they
+  refer to separate transactions.
+
+For evidence items labeled "Pasted text evidence" only:
+- Check whether the content reads as a first-person account of the user's own
+  actions, beliefs, or situation (e.g. "I sent", "I received", "I was told",
+  "I think") rather than a quoted conversation, email, or message from someone
+  else.
+- If it reads as a first-person account, treat statements from it with the
+  same caution as user-provided context: do not treat it as independently
+  verified documentary evidence, and note this when it appears in a
+  contradiction's description.
+- If it instead reads as quoted text from another party (e.g. a copied chat
+  log or email body), treat it as ordinary evidence like any other.
+- Do not apply this caution to evidence extracted from uploaded files
+  (screenshots, PDFs, documents) — those were not typed by the user and should
+  always be treated as ordinary evidence.
+
 USER CONTEXT:
 
-If the user's description conflicts with the uploaded evidence, compare the
-two sources explicitly.
+The user's description entered in the "Extra context" field is always labeled
+"User context".
 
-Treat the user's description as a separate source called "User context".
-Do not convert the user's claims into extracted evidence.
+Treat it as the user's own account or claim, not as independently verified evidence.
+
+If User context conflicts with uploaded evidence or pasted text evidence,
+compare the statements explicitly.
 
 When presenting a conflict:
-- clearly identify which statement comes from the uploaded evidence
-- clearly identify which statement comes from the user
-- do not assume either statement is correct
-- do not describe the user's statement as a fact established by the evidence
-- do not describe the evidence as proving what actually happened if it only
-  records a transaction, message, or claim
+
+- clearly identify which statement comes from uploaded evidence
+- clearly identify which statement comes from pasted text evidence, if applicable
+- clearly identify which statement comes from User context, if applicable
+- do not assume any statement is correct merely because it came from the user
+- do not describe a user's statement as a fact established by the evidence
+- do not describe an uploaded record as proof of what actually happened if it
+  only records a transaction, message, or claim
 
 REASONING:
 
@@ -260,11 +373,14 @@ This is user-provided context, not extracted evidence.`
     : "No user-provided context was provided."
 }
 For contradiction evidence:
+
 - "source" must identify where the statement came from.
-- Use "Evidence #1", "Evidence #2", etc. for uploaded evidence.
-- Use "User context" when the statement comes from the user's description.
+- Use "Evidence #1", "Evidence #2", etc. only for uploaded files.
+- Use "Pasted text evidence" for statements from the pasted text evidence field.
+- Use "User context" for statements from the user's Extra context field.
 - "statement" must contain the specific relevant statement from that source.
-- Do not label user context as Evidence.
+- Never label User context as Evidence.
+- Never label Pasted text evidence as Evidence #1, Evidence #2, etc.
 Return JSON with exactly this shape:
 
 {

@@ -16,6 +16,7 @@ import { compressImage } from "@/lib/pipeline/compressImage";
 import { createCaseAction } from "@/actions/create-case-actions";
 
 import RedirectLoading from "@/components/Redirect/redirect";
+import { Marker, MarkerContent } from "@/components/ui/marker";
 
 const ACCEPTED_FILE_TYPES = [
   "image/png",
@@ -279,7 +280,10 @@ export default function NewInvestigationPage() {
                 })}
               </div>
             )}
-
+            {/* divider */}
+            <Marker variant="separator" >
+              <MarkerContent className="font-serif text-black text-xl ">OR</MarkerContent>
+            </Marker>
             <Controller
               name="textEvidence"
               control={form.control}
@@ -289,13 +293,13 @@ export default function NewInvestigationPage() {
                     htmlFor={field.name}
                     className="text-[12.5px] font-semibold text-muted-foreground"
                   >
-                    Paste text evidence
+                    Text evidence
                   </FieldLabel>
                   <Textarea
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    placeholder="Paste the exact scam message, email, or chat text here..."
+                    placeholder="Paste the message or email text you received"
                     className="min-h-[90px] w-full h-32 resize-none"
                   />
                   {fieldState.error && (
@@ -316,7 +320,7 @@ export default function NewInvestigationPage() {
                     htmlFor={field.name}
                     className="text-[12.5px] font-semibold text-muted-foreground"
                   >
-                    Extra context (optional)
+                    In your own words, what happened? (optional)
                   </FieldLabel>
                   <Textarea
                     {...field}

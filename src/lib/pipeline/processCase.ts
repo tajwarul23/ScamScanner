@@ -2,7 +2,10 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { cases, evidenceItems } from "@/lib/db/schema";
 import { convertDocxToText } from "@/lib/pipeline/convertDocx";
-import { extractEvidence, extractFromText } from "@/lib/pipeline/extractEvidence";
+import {
+  extractEvidence,
+  extractFromText,
+} from "@/lib/pipeline/extractEvidence";
 import { finalizeCase } from "@/lib/pipeline/finalizeCase";
 import { ruleSignalEngine } from "@/lib/pipeline/ruleSignalEngine";
 
@@ -37,7 +40,10 @@ const processEvidenceItem = async (item: EvidenceItem) => {
     } else if (item.mimeType === "text/plain") {
       data = await extractFromText(buffer.toString("utf-8"));
     } else {
-      data = await extractEvidence({ imageBuffer: buffer, mimeType: item.mimeType });
+      data = await extractEvidence({
+        imageBuffer: buffer,
+        mimeType: item.mimeType,
+      });
     }
 
     await db
@@ -56,7 +62,7 @@ const processEvidenceItem = async (item: EvidenceItem) => {
   }
 };
 
-//call final LLM, rule signal 
+//call final LLM, rule signal
 const finalizeIfReady = async (caseId: string) => {
   const items = await db.query.evidenceItems.findMany({
     where: eq(evidenceItems.caseId, caseId),
@@ -69,7 +75,10 @@ const finalizeIfReady = async (caseId: string) => {
     .map((item) => item.extractedData);
 
   if (successfulResults.length === 0) {
-    await db.update(cases).set({ status: "failed" }).where(eq(cases.id, caseId));
+    await db
+      .update(cases)
+      .set({ status: "failed" })
+      .where(eq(cases.id, caseId));
     return;
   }
 
@@ -83,8 +92,21 @@ const finalizeIfReady = async (caseId: string) => {
 
   try {
     const cleanResults = successfulResults.flatMap((r) => (r ? [r] : []));
+    const evidenceForReport = items
+      .filter(
+        (item) => item.extractionStatus === "success" && item.extractedData,
+      )
+      .flatMap((item) =>
+        item.extractedData
+          ? [{ fileName: item.fileName, data: item.extractedData }]
+          : [],
+      );
     const signals = await ruleSignalEngine(cleanResults);
-    const report = await finalizeCase(cleanResults, signals, claimed[0].context ?? undefined);
+    const report = await finalizeCase(
+      evidenceForReport,
+      signals,
+      claimed[0].context ?? undefined,
+    );
 
     await db
       .update(cases)
@@ -100,7 +122,10 @@ const finalizeIfReady = async (caseId: string) => {
       .where(eq(cases.id, caseId));
   } catch (err) {
     console.error("Failed to generate final report", err);
-    await db.update(cases).set({ status: "failed" }).where(eq(cases.id, caseId));
+    await db
+      .update(cases)
+      .set({ status: "failed" })
+      .where(eq(cases.id, caseId));
   }
 };
 
@@ -110,7 +135,9 @@ export const processCase = async (caseId: string) => {
     where: eq(evidenceItems.caseId, caseId),
   });
 
-  const pendingItems = items.filter((item) => item.extractionStatus === "pending");
+  const pendingItems = items.filter(
+    (item) => item.extractionStatus === "pending",
+  );
   await Promise.all(pendingItems.map((item) => processEvidenceItem(item)));
   await finalizeIfReady(caseId);
 };

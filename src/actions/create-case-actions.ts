@@ -13,6 +13,18 @@ import { checkCaseRateLimit } from "@/lib/rate-limit/case-rate-limit";
 
 import { CASE_QUEUE_NAME, caseQueue } from "@/lib/queue/caseQueue";
 
+
+const ACCEPTED_FILE_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+];
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILES = 3;
+
 //upload to cloudinary
 const processUpload = async (
   evidenceItemId: string,
@@ -67,6 +79,28 @@ export const createCaseAction = async (
   const files = formData
     .getAll("files")
     .filter((f): f is File => f instanceof File);
+
+    if(files.length > MAX_FILES){
+      return {
+        success:false,
+        error:"You can attach up to 3 files"
+      }
+    }
+
+    const overSized = files.find((f) => f.size > MAX_FILE_SIZE_MB * 1024 * 1024);
+    if(overSized){
+      return {
+        success:false,
+        error:`${overSized.name} is over 10 MB limit`
+      }
+    }
+    const wrongFileType = files.find((f) => !ACCEPTED_FILE_TYPES.includes(f.type));
+    if(wrongFileType){
+      return {
+        success:false,
+        error:`${wrongFileType.name} invalid file type`
+      }
+    }
 
   const context = formData.get("context");
   const extraContext =

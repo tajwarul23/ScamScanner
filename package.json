@@ -25,6 +25,7 @@
     "cloudinary": "^2.11.0",
     "cn": "^0.3.0",
     "drizzle-orm": "^0.45.2",
+    "file-type": "^22.1.1",
     "groq-sdk": "^1.6.0",
     "ioredis": "^6.0.0",
     "lucide-react": "^1.46.0",

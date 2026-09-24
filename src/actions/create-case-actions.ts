@@ -12,7 +12,7 @@ import { uploadEvidenceFile } from "@/lib/pipeline/uploadEvidence";
 import { checkCaseRateLimit } from "@/lib/rate-limit/case-rate-limit";
 
 import { CASE_QUEUE_NAME, caseQueue } from "@/lib/queue/caseQueue";
-
+import { fileTypeFromBuffer } from "file-type";
 
 const ACCEPTED_FILE_TYPES = [
   "image/png",
@@ -80,27 +80,47 @@ export const createCaseAction = async (
     .getAll("files")
     .filter((f): f is File => f instanceof File);
 
-    if(files.length > MAX_FILES){
-      return {
-        success:false,
-        error:"You can attach up to 3 files"
-      }
-    }
+  if (files.length > MAX_FILES) {
+    return {
+      success: false,
+      error: "You can attach up to 3 files",
+    };
+  }
 
-    const overSized = files.find((f) => f.size > MAX_FILE_SIZE_MB * 1024 * 1024);
-    if(overSized){
+  const overSized = files.find((f) => f.size > MAX_FILE_SIZE_MB * 1024 * 1024);
+  if (overSized) {
+    return {
+      success: false,
+      error: `${overSized.name} is over 10 MB limit`,
+    };
+  }
+  const wrongFileType = files.find(
+    (f) => !ACCEPTED_FILE_TYPES.includes(f.type),
+  );
+  if (wrongFileType) {
+    return {
+      success: false,
+      error: `${wrongFileType.name} invalid file type`,
+    };
+  }
+
+  const fileBuffers = await Promise.all(
+    files.map(async (f) => ({
+      file: f,
+      buffer: Buffer.from(await f.arrayBuffer()),
+    })),
+  );
+
+  for (const { file: f, buffer } of fileBuffers) {
+    if (f.type === "text/plain") continue;
+    const detected = await fileTypeFromBuffer(buffer);
+    if (!detected || detected.mime !== f.type) {
       return {
-        success:false,
-        error:`${overSized.name} is over 10 MB limit`
-      }
+        success: false,
+        error: `${f.name} doesn't match its declared file type.`,
+      };
     }
-    const wrongFileType = files.find((f) => !ACCEPTED_FILE_TYPES.includes(f.type));
-    if(wrongFileType){
-      return {
-        success:false,
-        error:`${wrongFileType.name} invalid file type`
-      }
-    }
+  }
 
   const context = formData.get("context");
   const extraContext =
@@ -137,14 +157,12 @@ export const createCaseAction = async (
       .returning();
 
     evidenceSources = [
-      ...(await Promise.all(
-        files.map(async (file) => ({
-          fileName: file.name,
-          mimeType: file.type,
-          buffer: Buffer.from(await file.arrayBuffer()),
-          isUpload: true,
-        })),
-      )),
+      ...fileBuffers.map(({ file, buffer }) => ({
+        fileName: file.name,
+        mimeType: file.type,
+        buffer,
+        isUpload: true,
+      })),
       ...(pastedTextEvidence
         ? [
             {

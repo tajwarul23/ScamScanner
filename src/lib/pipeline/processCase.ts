@@ -22,7 +22,9 @@ const getEvidenceBuffer = async (item: EvidenceItem): Promise<Buffer> => {
   if (!item.fileUrl) {
     throw new Error("Evidence item has neither rawText nor fileUrl");
   }
-  const response = await fetch(item.fileUrl);
+  const response = await fetch(item.fileUrl, {
+    signal: AbortSignal.timeout(30_000),
+  });
   if (!response.ok) {
     throw new Error(`Failed to download evidence file: ${response.status}`);
   }
@@ -70,11 +72,13 @@ const finalizeIfReady = async (caseId: string) => {
 
   if (items.some((item) => item.extractionStatus === "pending")) return;
 
-  const successfulResults = items
-    .filter((item) => item.extractionStatus === "success" && item.extractedData)
-    .map((item) => item.extractedData);
+  const successfulItems = items.flatMap((item) =>
+    item.extractionStatus === "success" && item.extractedData
+      ? [{ ...item, extractedData: item.extractedData }]
+      : [],
+  );
 
-  if (successfulResults.length === 0) {
+  if (successfulItems.length === 0) {
     await db
       .update(cases)
       .set({ status: "failed" })
@@ -91,16 +95,12 @@ const finalizeIfReady = async (caseId: string) => {
   if (claimed.length === 0) return;
 
   try {
-    const cleanResults = successfulResults.flatMap((r) => (r ? [r] : []));
-    const evidenceForReport = items
-      .filter(
-        (item) => item.extractionStatus === "success" && item.extractedData,
-      )
-      .flatMap((item) =>
-        item.extractedData
-          ? [{ fileName: item.fileName, data: item.extractedData }]
-          : [],
-      );
+    const cleanResults = successfulItems.map((item) => item.extractedData);
+    const evidenceForReport = successfulItems.map((item) => ({
+      fileName: item.fileName,
+      data: item.extractedData,
+      rawText: item.rawText ?? undefined,
+    }));
     const signals = await ruleSignalEngine(cleanResults);
     const report = await finalizeCase(
       evidenceForReport,

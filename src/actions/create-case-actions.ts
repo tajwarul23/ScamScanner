@@ -8,6 +8,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { cases, evidenceItems } from "@/lib/db/schema";
 
+import { PASTED_TEXT_LABEL } from "@/lib/pipeline/constants";
 import { uploadEvidenceFile } from "@/lib/pipeline/uploadEvidence";
 import { checkCaseRateLimit } from "@/lib/rate-limit/case-rate-limit";
 
@@ -166,7 +167,7 @@ export const createCaseAction = async (
       ...(pastedTextEvidence
         ? [
             {
-              fileName: "Pasted text evidence",
+              fileName: PASTED_TEXT_LABEL,
               mimeType: "text/plain",
               buffer: Buffer.from(pastedTextEvidence, "utf-8"),
               isUpload: false,

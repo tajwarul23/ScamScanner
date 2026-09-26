@@ -560,6 +560,7 @@ Use:
 - short sentences,
 - calm and friendly wording,
 - practical explanations.
+- Do not use technical jargons
 
 Avoid unnecessary cybersecurity terminology.
 
@@ -569,6 +570,9 @@ Do not use terms such as:
 - IOC,
 - payload,
 - exploit,
+- phishing,
+- typosquatting,
+
 
 unless they are directly necessary.
 
@@ -703,7 +707,7 @@ Return exactly this shape:
 {
   "title": "a short, descriptive 6-10 word title, no quotes, no trailing punctuation",
 
-  "summary": "a 2-4 sentence plain-language summary grounded in the provided information",
+  "summary": "a 1-2 sentence plain-language summary grounded in the provided information",
 
   "riskLevel": "low" | "medium" | "high",
 

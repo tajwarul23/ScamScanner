@@ -40,35 +40,198 @@ const DANGEROUS_EXTENSIONS = [
 ];
 
 const BRANDS = [
-  "paypal",
-  "google",
-  "microsoft",
-  "apple",
-  "amazon",
-  "facebook",
-  "instagram",
-  "whatsapp",
-  "netflix",
-  "binance",
-  "coinbase",
-  "linkedin",
-  "github",
+  // Global
+  "paypal", "google", "gmail", "youtube", "microsoft", "office365",
+  "apple", "icloud", "amazon", "facebook", "messenger", "instagram",
+  "whatsapp", "telegram", "tiktok", "twitter", "linkedin", "github",
+  "netflix", "spotify", "dropbox", "docusign",
+
+  // Payments & crypto
+  "payoneer", "binance", "coinbase", "bybit", "kucoin", "metamask", "trustwallet",
+
+  "hotmail", "skype", "onedrive", "sharepoint", "microsoft365",
+  "yahoo", "protonmail", "snapchat", "discord", "reddit", "pinterest",
+  "wetransfer", "openai", "chatgpt", "samsung", "xiaomi",
+
+  // Shopping
+  "ebay", "alibaba", "aliexpress", "temu", "shein", "walmart", "shopify",
+
+  // Streaming & games
+  "primevideo", "disneyplus", "hotstar", "hoichoi", "garena", "pubg",
+  "roblox", "epicgames", "playstation", "steampowered", "steamcommunity",
+
+  // Travel
+  "airbnb", "qatarairways",
+
+  // Payments & crypto
+  "mastercard", "americanexpress", "skrill", "neteller", "revolut", "venmo",
+  "westernunion", "moneygram", "remitly", "worldremit", "bitget", "mexc",
+
+  // Delivery
+  "fedex", "aramex",
+
+  // Bangladesh
+  "bkash", "nagad", "dutchbangla", "bracbank", "citybank", "islamibank",
+  "sonalibank", "grameenphone", "banglalink", "teletalk", "daraz",
+  "pathao", "foodpanda", "bdjobs",
+  "bangladeshbank", "janatabank", "agranibank", "primebank", "ificbank",
+  "hsbc", "standardchartered", "chaldal", "rokomari", "shohoz", "bikroy",
+  "ekpay",
 ];
 
 const TRUSTED_BRAND_DOMAINS: Record<string, string[]> = {
-  paypal: ["paypal.com"],
-  google: ["google.com", "google.co.uk", "google.de", "google.co.in", "google.ca", "youtube.com"],
-  microsoft: ["microsoft.com", "live.com", "outlook.com", "office.com"],
-  apple: ["apple.com", "icloud.com"],
-  amazon: ["amazon.com", "amazon.co.uk", "amazon.de", "amazon.in", "amazon.ca", "amazon.co.jp"],
-  facebook: ["facebook.com"],
-  instagram: ["instagram.com"],
-  whatsapp: ["whatsapp.com"],
+  google: [
+    "google.com", "google.com.bd", "google.co.uk", "google.de", "google.co.in", "google.ca",
+    "gmail.com", "youtube.com", "youtu.be", "g.co", "goo.gl",
+    // Google's own content/CDN domains (image and file links use these)
+    "googleusercontent.com", "googleapis.com", "googlevideo.com",
+  ],
+  youtube: ["youtube.com", "youtu.be", "youtube-nocookie.com"],
+  gmail: ["gmail.com", "google.com"],
+  microsoft: [
+    "microsoft.com", "live.com", "outlook.com", "office.com", "microsoftonline.com",
+    "bing.com", "xbox.com", "azure.com", "microsoft365.com",
+  ],
+  outlook: ["outlook.com", "live.com", "office.com", "microsoft.com"],
+  office365: ["office.com", "microsoft.com", "microsoftonline.com"],
+  microsoft365: ["microsoft365.com", "microsoft.com", "office.com"],
+  hotmail: ["hotmail.com", "live.com", "outlook.com"],
+  skype: ["skype.com"],
+  onedrive: ["onedrive.live.com", "onedrive.com", "1drv.ms", "live.com"],
+  sharepoint: ["sharepoint.com"],
+  apple: ["apple.com", "icloud.com", "me.com"],
+  icloud: ["icloud.com", "apple.com"],
+  amazon: [
+    "amazon.com", "amazon.co.uk", "amazon.de", "amazon.in", "amazon.ca", "amazon.co.jp",
+    "amazon.ae", "amazon.sg",
+    // Amazon Web Services file hosting (s3.amazonaws.com links)
+    "amazonaws.com",
+  ],
+  primevideo: ["primevideo.com", "amazon.com"],
+  facebook: ["facebook.com", "facebook.net", "fb.com", "fb.me", "messenger.com", "meta.com"],
+  messenger: ["messenger.com", "facebook.com"],
+  instagram: ["instagram.com", "cdninstagram.com"],
+  whatsapp: ["whatsapp.com", "whatsapp.net", "wa.me"],
+  telegram: ["telegram.org", "telegram.me", "t.me"],
+  tiktok: ["tiktok.com", "tiktokcdn.com"],
+  twitter: ["twitter.com", "x.com", "t.co"],
+  linkedin: ["linkedin.com", "lnkd.in"],
+  github: ["github.com", "githubusercontent.com"],
+  yahoo: ["yahoo.com"],
+  protonmail: ["protonmail.com", "proton.me"],
+  snapchat: ["snapchat.com"],
+  discord: ["discord.com", "discord.gg", "discordapp.com"],
+  reddit: ["reddit.com", "redd.it"],
+  pinterest: ["pinterest.com"],
+  wetransfer: ["wetransfer.com", "we.tl"],
+  openai: ["openai.com", "chatgpt.com"],
+  chatgpt: ["chatgpt.com", "openai.com"],
+  samsung: ["samsung.com"],
+  xiaomi: ["xiaomi.com", "mi.com"],
   netflix: ["netflix.com"],
+  spotify: ["spotify.com"],
+  zoom: ["zoom.us", "zoom.com"],
+  dropbox: ["dropbox.com"],
+  docusign: ["docusign.com", "docusign.net"],
+  adobe: ["adobe.com"],
+  steam: ["steampowered.com", "steamcommunity.com"],
+  steampowered: ["steampowered.com", "steamcommunity.com"],
+  steamcommunity: ["steamcommunity.com", "steampowered.com"],
+
+  // ── Shopping ──
+  ebay: ["ebay.com", "ebay.co.uk", "ebay.de"],
+  alibaba: ["alibaba.com"],
+  aliexpress: ["aliexpress.com", "aliexpress.us"],
+  temu: ["temu.com"],
+  shein: ["shein.com"],
+  walmart: ["walmart.com"],
+  shopify: ["shopify.com"],
+
+  // ── Streaming & games ──
+  disneyplus: ["disneyplus.com"],
+  hotstar: ["hotstar.com"],
+  hoichoi: ["hoichoi.tv"],
+  garena: ["garena.com"],
+  pubg: ["pubg.com", "pubgmobile.com"],
+  roblox: ["roblox.com"],
+  epicgames: ["epicgames.com"],
+  playstation: ["playstation.com"],
+
+  // ── Travel ──
+  airbnb: ["airbnb.com"],
+  qatarairways: ["qatarairways.com"],
+
+  // ── Payments & crypto ──
+  paypal: ["paypal.com", "paypal.me", "paypalobjects.com"],
+  mastercard: ["mastercard.com"],
+  americanexpress: ["americanexpress.com"],
+  skrill: ["skrill.com"],
+  neteller: ["neteller.com"],
+  revolut: ["revolut.com"],
+  venmo: ["venmo.com"],
+  westernunion: ["westernunion.com"],
+  moneygram: ["moneygram.com"],
+  remitly: ["remitly.com"],
+  worldremit: ["worldremit.com"],
+  bitget: ["bitget.com"],
+  mexc: ["mexc.com"],
+  payoneer: ["payoneer.com"],
+  wise: ["wise.com"],
   binance: ["binance.com"],
   coinbase: ["coinbase.com"],
-  linkedin: ["linkedin.com"],
-  github: ["github.com"],
+  bybit: ["bybit.com"],
+  okx: ["okx.com"],
+  kucoin: ["kucoin.com"],
+  metamask: ["metamask.io"],
+  trustwallet: ["trustwallet.com"],
+ 
+  // ── Delivery (parcel / customs scams) ──
+  dhl: ["dhl.com"],
+  fedex: ["fedex.com"],
+  aramex: ["aramex.com"],
+  ups: ["ups.com"],
+  usps: ["usps.com"],
+ 
+  // ── Bangladesh: mobile financial services ──
+  bkash: ["bkash.com"],
+  nagad: ["nagad.com.bd"],
+  rocket: ["dutchbanglabank.com"],
+  dbbl: ["dutchbanglabank.com"],
+  dutchbangla: ["dutchbanglabank.com"],
+  upay: ["upaybd.com"],
+ 
+  // ── Bangladesh: banks ──
+  bracbank: ["bracbank.com"],
+  citybank: ["thecitybank.com"],
+  ebl: ["ebl.com.bd"],
+  islamibank: ["islamibankbd.com"],
+  sonalibank: ["sonalibank.com.bd"],
+  bangladeshbank: ["bb.org.bd"],
+  janatabank: ["jb.com.bd"],
+  agranibank: ["agranibank.org"],
+  primebank: ["primebank.com.bd"],
+  ificbank: ["ificbank.com.bd"],
+  hsbc: ["hsbc.com", "hsbc.com.bd"],
+  standardchartered: ["sc.com"],
+ 
+  // ── Bangladesh: telecom ──
+  grameenphone: ["grameenphone.com"],
+  robi: ["robi.com.bd"],
+  banglalink: ["banglalink.net"],
+  teletalk: ["teletalk.com.bd"],
+ 
+  // ── Bangladesh: e-commerce, jobs, services ──
+  daraz: ["daraz.com.bd", "daraz.com"],
+  pathao: ["pathao.com"],
+  foodpanda: ["foodpanda.com.bd", "foodpanda.com"],
+  bdjobs: ["bdjobs.com"],
+  chaldal: ["chaldal.com"],
+  rokomari: ["rokomari.com"],
+  shohoz: ["shohoz.com"],
+  bikroy: ["bikroy.com"],
+
+  // ── Bangladesh: government payments ──
+  ekpay: ["ekpay.gov.bd"],
 };
 /*
   lookalike map

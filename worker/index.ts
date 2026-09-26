@@ -10,7 +10,11 @@ const worker = new Worker(
   async (job) => {
     await processCase(job.data.caseId);
   },
-  { connection: queueConnection },
+  { connection: queueConnection,
+
+     drainDelay: 300,          // seconds; wait up to 5 min per idle round 
+    stalledInterval: 300_000, // ms; check for stuck jobs every 5 min 
+   },
 );
 
 worker.on("completed", (job) => {
@@ -25,6 +29,8 @@ const port = process.env.PORT ? Number(process.env.PORT) : 5000;
 
 http
   .createServer((_req, res) => {
+    console.log("Ping received..");
+    
     res.writeHead(200, { "Content-Type": "text/plain" });
     res.end("Health Checking broo.");
   })

@@ -206,7 +206,11 @@ export const createCaseAction = async (
   );
 
   try {
-    await caseQueue.add(CASE_QUEUE_NAME, { caseId: newCase.id });
+    await caseQueue.add(
+      CASE_QUEUE_NAME,
+      { caseId: newCase.id },
+      { removeOnComplete: true },
+    );
   } catch (err) {
     console.error("Failed to enqueue case for processing", newCase.id, err);
     await db

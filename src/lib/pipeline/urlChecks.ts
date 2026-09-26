@@ -68,6 +68,16 @@ const TRUSTED_BRAND_DOMAINS: Record<string, string[]> = {
   github: ["github.com"],
 };
 
+const URL_SHORTENERS = new Set([
+  "bit.ly",
+  "tinyurl.com",
+  "t.co",
+  "is.gd",
+  "cutt.ly",
+  "shorturl.at",
+  "ow.ly",
+]);
+
 function createSignal(
   label: string,
   severity: Signal["severity"],
@@ -177,6 +187,11 @@ function getSubdomainCount(hostname: string): number {
   return Math.max(0, parts.length - 2);
 }
 
+//url shortener
+function isUrlShortener(hostname: string): boolean {
+  return URL_SHORTENERS.has(hostname);
+}
+
 /* -----------------------------
    CHECK ONE URL
 ----------------------------- */
@@ -222,8 +237,19 @@ function checkUrl(urlString: string): Signal[] {
     signals.push(
       createSignal(
         "Punycode domain",
-        "high",
+        "medium",
         "The hostname uses Punycode, which can be used to create visually deceptive domains.",
+        [urlString],
+      ),
+    );
+  }
+  //url shortener
+  if (isUrlShortener(hostname)) {
+    signals.push(
+      createSignal(
+        "Shortened URL",
+        "low",
+        "The URL uses a link-shortening service, which hides the final destination.",
         [urlString],
       ),
     );
@@ -235,7 +261,7 @@ function checkUrl(urlString: string): Signal[] {
     signals.push(
       createSignal(
         "Unicode domain",
-        "high",
+        "medium",
         "The hostname contains non-ASCII Unicode characters, which can be used for visually deceptive domains.",
         [urlString],
       ),
@@ -304,7 +330,7 @@ function checkUrl(urlString: string): Signal[] {
 
   const subdomainCount = getSubdomainCount(hostname);
 
-  if (subdomainCount >= 3) {
+  if (subdomainCount >= 5) {
     signals.push(
       createSignal(
         "Excessive subdomains",
@@ -354,7 +380,6 @@ const checkSafeBrowsing = async (url: string): Promise<Signal[]> => {
     );
     const matches = response.data.matches ?? [];
     console.log("GOOGLE SAFE Response", response.data);
-    
 
     if (matches.length === 0) return [];
 
@@ -372,7 +397,7 @@ const checkSafeBrowsing = async (url: string): Promise<Signal[]> => {
     return [];
   }
 };
-export async function checkUrls(urls: string[]):Promise<Signal[]> {
+export async function checkUrls(urls: string[]): Promise<Signal[]> {
   const uniqueUrls = [...new Set(urls)];
 
   const results = await Promise.all(

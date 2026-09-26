@@ -581,6 +581,98 @@ function checkUrl(urlString: string): Signal[] {
 }
 
 /* -----------------------------
+   DOMAIN AGE (RDAP)
+----------------------------- */
+
+const RDAP_TIMEOUT_MS = 3000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// remember answers so the same domain isn't looked up twice
+const rdapCache = new Map<string, Date | null>();
+
+interface RdapResponse {
+  events?: { eventAction: string; eventDate: string }[];
+}
+
+async function getDomainRegistrationDate(domain: string): Promise<Date | null> {
+  if (rdapCache.has(domain)) return rdapCache.get(domain) ?? null;
+
+  try {
+    const response = await fetch(`https://rdap.org/domain/${domain}`, {
+      
+      headers: { Accept: "application/rdap+json", "User-Agent": "scam-scanner/1.0" },
+      signal: AbortSignal.timeout(RDAP_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      rdapCache.set(domain, null); 
+      return null;
+    }
+
+    const data = (await response.json()) as RdapResponse;
+    const registration = data.events?.find(
+      (event) => event.eventAction === "registration",
+    );
+    const date = registration ? new Date(registration.eventDate) : null;
+
+    rdapCache.set(domain, date);
+    return date;
+  } catch (error) {
+    
+    console.error("RDAP lookup failed:", domain, error);
+    return null;
+  }
+}
+
+async function checkDomainAge(urlString: string): Promise<Signal[]> {
+  let hostname: string;
+  try {
+    hostname = new URL(normalizeUrl(urlString)).hostname.toLowerCase();
+  } catch {
+    return [];
+  }
+
+  if (isIpAddress(hostname)) return [];
+
+  const isTrusted = Object.keys(TRUSTED_BRAND_DOMAINS).some((brand) =>
+    isTrustedBrandDomain(hostname, brand),
+  );
+  if (isTrusted) return [];
+
+  const domain = parse(hostname).domain; 
+  if (!domain) return [];
+
+  const registeredAt = await getDomainRegistrationDate(domain);
+  if (!registeredAt || Number.isNaN(registeredAt.getTime())) return [];
+
+  const ageDays = Math.floor((Date.now() - registeredAt.getTime()) / DAY_MS);
+
+  if (ageDays < 7) {
+    return [
+      createSignal(
+        "Very newly registered domain",
+        "high",
+        `The domain ${domain} was registered only ${ageDays} day(s) ago. Scam websites are often brand new.`,
+        [urlString],
+      ),
+    ];
+  }
+
+  if (ageDays < 30) {
+    return [
+      createSignal(
+        "Newly registered domain",
+        "medium",
+        `The domain ${domain} was registered ${ageDays} days ago. Newly created websites deserve extra caution.`,
+        [urlString],
+      ),
+    ];
+  }
+
+  return [];
+}
+
+/* -----------------------------
    CHECK ALL URLs
 ----------------------------- */
 interface SafeBrowsingResponse {
@@ -639,9 +731,12 @@ export async function checkUrls(urls: string[]): Promise<Signal[]> {
   const results = await Promise.all(
     uniqueUrls.map(async (url) => {
       const localSignal = checkUrl(url);
-      const SafeBrowsingSignal = await checkSafeBrowsing(url);
+      const [SafeBrowsingSignal, domainAgeSignal] = await Promise.all([
+        checkSafeBrowsing(url),
+        checkDomainAge(url),
+      ]);
 
-      return [...localSignal, ...SafeBrowsingSignal];
+      return [...localSignal, ...SafeBrowsingSignal, ...domainAgeSignal];
     }),
   );
   return results.flat();

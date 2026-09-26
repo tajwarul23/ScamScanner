@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   AlertTriangle,
   CheckCircle2,
+  Download,
   ExternalLink,
   FileImage,
   FileText,
@@ -16,6 +18,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { BackButton } from "@/components/ui/back-button";
+import { Button } from "@/components/ui/button";
 import { getCaseData, type CaseData } from "@/actions/get-case-action";
 import type { Signal } from "@/lib/pipeline/ruleSignalEngine";
 
@@ -88,6 +91,7 @@ function EvidenceQuote({ label, text }: { label: string; text: string }) {
 export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps) {
   const [caseData, setCaseData] = useState(initialCase);
   const [previewItem, setPreviewItem] = useState<EvidenceItem | null>(null);
+  const [activeTab, setActiveTab] = useState("report");
 
   useEffect(() => {
     if (caseData.status === "ready" || caseData.status === "failed") {
@@ -109,19 +113,58 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
   const isReady = caseData.status === "ready";
   const RiskIcon = caseData.riskLevel ? riskIcons[caseData.riskLevel] : null;
 
+  const handleExportPdf = () => {
+    // show the Report tab immediately, before the print dialog opens
+    flushSync(() => setActiveTab("report"));
+
+    // the browser uses document.title as the default PDF file name
+    const originalTitle = document.title;
+    document.title = `Scam Scanner - ${caseData.title ?? "Case report"}`;
+    window.addEventListener(
+      "afterprint",
+      () => {
+        document.title = originalTitle;
+      },
+      { once: true },
+    );
+
+    window.print();
+  };
+
   return (
     <main className="flex flex-1 justify-center px-6 py-10 md:px-12">
       <div className="flex w-full max-w-[760px] flex-col gap-6">
         <div>
-          <BackButton />
-          <h1 className="mt-2 font-serif text-3xl font-semibold tracking-tight">
-            {caseData.title ?? "Generating report…"}
-          </h1>
+          <div className="print:hidden">
+            <BackButton />
+          </div>
+
+          {/* only visible in the PDF */}
+          <p className="hidden font-mono text-xs uppercase tracking-wide text-muted-foreground print:block">
+            Scam Scanner report · {new Date(caseData.createdAt).toLocaleDateString()}
+          </p>
+
+          <div className="mt-2 flex items-start justify-between gap-4">
+            <h1 className="font-serif text-3xl font-semibold tracking-tight">
+              {caseData.title ?? "Generating report…"}
+            </h1>
+
+            {isReady && (
+              <Button
+                variant="outline"
+                onClick={handleExportPdf}
+                className="shrink-0 cursor-pointer print:hidden"
+              >
+                <Download className="size-4" />
+                Export PDF
+              </Button>
+            )}
+          </div>
         </div>
 
         {caseData.riskLevel && RiskIcon && (
           <div
-            className={`flex items-start gap-3 rounded-lg border-l-4 p-4 ${riskBannerStyles[caseData.riskLevel]}`}
+            className={`flex items-start gap-3 rounded-lg border-l-4 p-4 print:break-inside-avoid ${riskBannerStyles[caseData.riskLevel]}`}
           >
             <RiskIcon className="mt-0.5 size-5 shrink-0" strokeWidth={1.8} />
             <div className="flex flex-col gap-1">
@@ -151,8 +194,8 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
           </div>
         )}
 
-        <Tabs defaultValue="report" >
-          <TabsList variant="line" >
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList variant="line" className="print:hidden">
             <TabsTrigger className="cursor-pointer" value="report">Report</TabsTrigger>
             <TabsTrigger className="cursor-pointer" value="evidence">
               Evidence ({caseData.evidenceItems.length})
@@ -180,7 +223,7 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
                       {[...caseData.redFlags]
                         .sort((a, b) => severityRank[b.severity] - severityRank[a.severity])
                         .map((flag, i) => (
-                          <div key={i} className="flex gap-2.5">
+                          <div key={i} className="flex gap-2.5 print:break-inside-avoid">
                             <span
                               className={`mt-2 size-2.5 shrink-0 rounded-full ${dotStyles[flag.severity]}`}
                             />
@@ -205,7 +248,7 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
                       {[...caseData.signals]
                         .sort((a, b) => severityRank[b.severity] - severityRank[a.severity])
                         .map((signal) => (
-                          <div key={signal.id} className="flex gap-2.5">
+                          <div key={signal.id} className="flex gap-2.5 print:break-inside-avoid">
                             <span
                               className={`mt-2 size-2.5 shrink-0 rounded-full ${dotStyles[signal.severity]}`}
                             />
@@ -238,7 +281,7 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
                       {[...caseData.contradictions]
                         .sort((a, b) => severityRank[b.severity] - severityRank[a.severity])
                         .map((contradiction, i) => (
-                          <div key={i} className="rounded-lg border border-border bg-card p-4">
+                          <div key={i} className="rounded-lg border border-border bg-card p-4 print:break-inside-avoid">
                             <div className="mb-3 flex items-center gap-2">
                               <span
                                 className={`inline-flex items-center rounded-md px-2 py-0.5 font-mono text-xs font-medium uppercase tracking-wide ${riskStyles[contradiction.severity]}`}

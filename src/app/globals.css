@@ -133,3 +133,22 @@
     @apply font-sans;
   }
 }
+
+@media print {
+  /* page size and margins of the PDF */
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+
+  /* keep the coloured risk banner and severity dots
+     (browsers drop background colours when printing by default) */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    background: white;
+  }
+}

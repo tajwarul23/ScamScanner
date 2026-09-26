@@ -118,6 +118,7 @@ const finalizeIfReady = async (caseId: string) => {
         signals,
         status: "ready",
         contradictions: report.contradictions,
+        redFlags: report.redFlags
       })
       .where(eq(cases.id, caseId));
   } catch (err) {

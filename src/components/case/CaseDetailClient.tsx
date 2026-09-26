@@ -171,7 +171,32 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
                   </div>
                 )}
 
-                {caseData.signals && caseData.signals.length > 0 && (
+                {caseData.redFlags.length > 0 && (
+                  <div className="flex flex-col gap-3 border-b border-border pb-6">
+                    <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                      Red flags
+                    </h2>
+                    <div className="flex flex-col gap-4">
+                      {[...caseData.redFlags]
+                        .sort((a, b) => severityRank[b.severity] - severityRank[a.severity])
+                        .map((flag, i) => (
+                          <div key={i} className="flex gap-2.5">
+                            <span
+                              className={`mt-2 size-2.5 shrink-0 rounded-full ${dotStyles[flag.severity]}`}
+                            />
+                            <div className="flex flex-col gap-2">
+                              <span className="text-base font-medium text-foreground">
+                                {flag.description}
+                              </span>
+                              <EvidenceQuote label={flag.source} text={flag.quote} />
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {caseData.redFlags.length === 0 && caseData.signals && caseData.signals.length > 0 && (
                   <div className="flex flex-col gap-3 border-b border-border pb-6">
                     <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                       Key findings

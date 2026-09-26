@@ -108,6 +108,13 @@ type Contradiction = {
   severity: "low" | "medium" | "high";
 };
 
+type RedFlag = {
+  description: string;
+  source: string;
+  quote: string;
+  severity: "low" | "medium" | "high";
+};
+
 export const cases = pgTable(
   "cases",
   {
@@ -122,6 +129,7 @@ export const cases = pgTable(
     signals: jsonb("signals").$type<Signal[]>().default([]).notNull(),
     summary: text("summary"),
     contradictions: jsonb("contradictions").$type<Contradiction[]>().default([]).notNull(),
+    redFlags: jsonb("red_flags").$type<RedFlag[]>().default([]).notNull(),
     verifySteps: jsonb("verify_steps").$type<string[]>().default([]).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")

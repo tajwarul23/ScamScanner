@@ -1,5 +1,8 @@
 import type { Signal } from "./ruleSignalEngine";
 import axios from "axios";
+import { parse } from "tldts";
+
+import { domainToUnicode } from "node:url";
 
 const SUSPICIOUS_KEYWORDS = [
   "login",
@@ -54,10 +57,10 @@ const BRANDS = [
 
 const TRUSTED_BRAND_DOMAINS: Record<string, string[]> = {
   paypal: ["paypal.com"],
-  google: ["google.com"],
-  microsoft: ["microsoft.com", "live.com", "outlook.com"],
-  apple: ["apple.com"],
-  amazon: ["amazon.com"],
+  google: ["google.com", "google.co.uk", "google.de", "google.co.in", "google.ca", "youtube.com"],
+  microsoft: ["microsoft.com", "live.com", "outlook.com", "office.com"],
+  apple: ["apple.com", "icloud.com"],
+  amazon: ["amazon.com", "amazon.co.uk", "amazon.de", "amazon.in", "amazon.ca", "amazon.co.jp"],
   facebook: ["facebook.com"],
   instagram: ["instagram.com"],
   whatsapp: ["whatsapp.com"],
@@ -67,7 +70,36 @@ const TRUSTED_BRAND_DOMAINS: Record<string, string[]> = {
   linkedin: ["linkedin.com"],
   github: ["github.com"],
 };
+/*
+  lookalike map
+*/
+const LOOKALIKE_MAP: Record<string, string> = {
+  // Numbers → letters
+  "0": "o",
+  "1": "l",
+  "3": "e",
+  "4": "a",
+  "5": "s",
+  "7": "t",
 
+  // Cyrillic
+  "а": "a",
+  "е": "e",
+  "о": "o",
+  "р": "p",
+  "с": "c",
+  "х": "x",
+  "у": "y",
+
+  // Other Unicode lookalikes
+  "і": "i",
+  "ј": "j",
+  "ԁ": "d",
+  "ɡ": "g",
+  "ο": "o",
+  "α": "a",
+  "ν": "v",
+};
 const URL_SHORTENERS = new Set([
   "bit.ly",
   "tinyurl.com",
@@ -115,9 +147,7 @@ function hasPunycode(hostname: string): boolean {
   return hostname.split(".").some((part) => part.startsWith("xn--"));
 }
 
-function hasUnicode(hostname: string): boolean {
-  return [...hostname].some((char) => char.charCodeAt(0) > 127);
-}
+
 
 /* -----------------------------
    3. EMBEDDED CREDENTIALS
@@ -139,15 +169,7 @@ function getBrandImpersonation(hostname: string): string | null {
       continue;
     }
 
-    const trustedDomains = TRUSTED_BRAND_DOMAINS[brand] ?? [];
-
-    const isTrusted = trustedDomains.some(
-      (domain) =>
-        normalizedHostname === domain ||
-        normalizedHostname.endsWith(`.${domain}`),
-    );
-
-    if (!isTrusted) {
+    if (!isTrustedBrandDomain(normalizedHostname, brand)) {
       return brand;
     }
   }
@@ -186,6 +208,44 @@ function getSubdomainCount(hostname: string): number {
 
   return Math.max(0, parts.length - 2);
 }
+// get domain name using tldts
+function getDomainName(hostname: string): string | null {
+  const parsed = parse(hostname);
+  return parsed.domainWithoutSuffix ?? null;
+}
+//normalize lookalike
+function normalizeLookalikes(value: string): string {
+  return [...value].map((char) => LOOKALIKE_MAP[char] ?? char).join("");
+}
+//isTrustedBrandDomain
+function isTrustedBrandDomain(hostname: string, brand: string): boolean {
+  const trustedDomains = TRUSTED_BRAND_DOMAINS[brand] ?? [];
+  return trustedDomains.some(
+    (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
+  );
+}
+/*
+  Decide whether a domain is close enough
+  to a brand to be considered possible typosquatting.
+*/
+function isTyposquatting(domainName: string, brand: string): boolean {
+  return normalizeLookalikes(domainName) === brand;
+}
+//which brand a hostname is trying to resemble
+
+
+function getTypoSquattedBrand(hostname: string): string | null {
+  const unicodeHost = domainToUnicode(hostname); // "xn--pypal-4ve.com" -> "pаypal.com"
+  const domainName = getDomainName(unicodeHost);
+  if (!domainName) return null;
+
+  for (const brand of BRANDS) {
+    if (isTrustedBrandDomain(hostname, brand)) continue;
+    if (isTyposquatting(domainName, brand)) return brand;
+  }
+  return null;
+}
+
 
 //url shortener
 function isUrlShortener(hostname: string): boolean {
@@ -255,18 +315,42 @@ function checkUrl(urlString: string): Signal[] {
     );
   }
 
-  /* Unicode hostname */
+  /*  Brand impersonation */
 
-  if (hasUnicode(hostname)) {
+  const impersonatedBrand = getBrandImpersonation(hostname);
+
+  if (impersonatedBrand) {
     signals.push(
       createSignal(
-        "Unicode domain",
-        "medium",
-        "The hostname contains non-ASCII Unicode characters, which can be used for visually deceptive domains.",
+        "Possible brand impersonation",
+        "high",
+        `The hostname contains "${impersonatedBrand}" but does not belong to a known trusted ${impersonatedBrand} domain.`,
         [urlString],
       ),
     );
   }
+
+  /* Typosquatting — skipped if impersonation already fired */
+
+  const typosquattedBrand = impersonatedBrand
+    ? null
+    : getTypoSquattedBrand(hostname);
+
+  if (typosquattedBrand) {
+    signals.push(
+      createSignal(
+        "Possible Typosquatting",
+        "medium",
+        `The domain name closely resembles the "${typosquattedBrand}" brand but is not its official domain.`,
+        [urlString],
+      ),
+    );
+  }
+
+
+  
+
+
 
   /* 3. Embedded credentials */
 
@@ -281,20 +365,9 @@ function checkUrl(urlString: string): Signal[] {
     );
   }
 
-  /* 4. Brand impersonation */
+  
 
-  const impersonatedBrand = getBrandImpersonation(hostname);
 
-  if (impersonatedBrand) {
-    signals.push(
-      createSignal(
-        "Possible brand impersonation",
-        "high",
-        `The hostname contains "${impersonatedBrand}" but does not belong to a known trusted ${impersonatedBrand} domain.`,
-        [urlString],
-      ),
-    );
-  }
 
   /* 5. Dangerous file extension */
 

@@ -1,7 +1,7 @@
 import Cta from "@/components/Cta/cta";
 import Footer from "@/components/Footer/footer";
 import Hero1 from "@/components/Hero/hero1";
-import HowItWorks from "@/components/Hero/how-it-wokrs";
+import HowItWorks from "@/components/Hero/how-it-works";
 import WhatsInside from "@/components/Hero/whats-inside";
 
 

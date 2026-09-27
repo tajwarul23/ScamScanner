@@ -29,7 +29,7 @@ const features = [
   {
     icon: FolderOpen,
     title: "History, export, and sharing",
-    description: "Keep every case, export a PDF report, or share a private link.",
+    description: "Keep every case, export a PDF report.",
   },
 ];
 

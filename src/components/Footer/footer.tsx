@@ -22,7 +22,7 @@ const Footer = () => {
               <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
                 <Search className="size-3.5" strokeWidth={2} />
               </span>
-              <span className="font-serif text-[15.5px] font-semibold">
+              <span className="text-[15.5px] font-bold tracking-[-0.02em]">
                 Scam Scanner
               </span>
             </div>
@@ -33,7 +33,7 @@ const Footer = () => {
 
           <div className="flex flex-wrap gap-16">
             <div className="flex flex-col gap-2.5">
-              <p className="font-mono text-[11.5px] uppercase tracking-[0.06em] text-muted-foreground">
+              <p className="type-label text-foreground">
                 Product
               </p>
               {productLinks.map((link) => (
@@ -48,7 +48,7 @@ const Footer = () => {
             </div>
 
             <div className="flex flex-col gap-2.5">
-              <p className="font-mono text-[11.5px] uppercase tracking-[0.06em] text-muted-foreground">
+              <p className="type-label text-foreground">
                 Account
               </p>
               {accountLinks.map((link) => (

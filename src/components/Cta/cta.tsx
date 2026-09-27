@@ -6,7 +6,7 @@ const Cta = () => {
   return (
     <section className="bg-accent-dark py-22">
       <div className="mx-auto flex max-w-[1180px] flex-col items-center gap-5 px-6 text-center md:px-12">
-        <h2 className="font-serif text-[34px] leading-[1.2] text-primary-foreground">
+        <h2 className="type-h2 text-primary-foreground">
           Don&apos;t guess. Investigate.
         </h2>
         <p className="max-w-[460px] text-base text-[oklch(88%_0.02_258)]">

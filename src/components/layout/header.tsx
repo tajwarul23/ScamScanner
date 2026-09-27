@@ -76,7 +76,7 @@ const Header = () => {
             <Search className="size-4.5" strokeWidth={1.9} />
           </span>
 
-          <span className="font-serif text-lg font-semibold">
+          <span className="text-lg font-bold tracking-[-0.02em]">
             Scam Scanner
           </span>
         </Link>

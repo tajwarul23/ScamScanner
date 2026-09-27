@@ -38,10 +38,8 @@ const WhatsInside = () => {
     <section id="features" className="py-22 scroll-mt-19">
       <div className="mx-auto max-w-295 px-6 md:px-12">
         <div className="mb-12 max-w-145">
-          <p className="font-mono text-xs uppercase tracking-[0.09em] text-primary">
-            What&apos;s inside
-          </p>
-          <h2 className="mt-3.5 font-serif text-[32px] font-semibold leading-[1.2]">
+          <p className="type-label text-primary">What&apos;s inside</p>
+          <h2 className="mt-3 type-h2">
             Everything you need to check a suspicious case, in one place.
           </h2>
         </div>
@@ -55,7 +53,7 @@ const WhatsInside = () => {
               <div className="flex size-10 items-center justify-center rounded-lg bg-accent text-primary">
                 <feature.icon className="size-5" strokeWidth={1.6} />
               </div>
-              <h3 className="font-serif text-base font-semibold">
+              <h3 className="text-base font-bold tracking-[-0.015em]">
                 {feature.title}
               </h3>
               <p className="text-[13.5px] leading-relaxed text-muted-foreground">

@@ -8,10 +8,8 @@ export default function NotFound() {
       <span className="flex size-14 items-center justify-center rounded-2xl bg-accent text-primary">
         <SearchX className="size-7" strokeWidth={1.6} />
       </span>
-      <p className="font-mono text-xs uppercase tracking-[0.09em] text-primary">
-        Error 404
-      </p>
-      <h1 className="font-serif text-[32px] font-semibold leading-[1.2] md:text-[40px]">
+      <p className="type-label text-primary">Error 404</p>
+      <h1 className="type-h2">
         This page didn&apos;t check out.
       </h1>
       <p className="max-w-[440px] text-[15px] leading-relaxed text-muted-foreground">

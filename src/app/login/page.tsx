@@ -39,15 +39,13 @@ export default function LoginPage() {
         <span className="flex size-[30px] items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Search className="size-4" strokeWidth={2} />
         </span>
-        <span className="font-serif text-base font-semibold">Scam Scanner</span>
+        <span className="text-base font-bold tracking-[-0.02em]">Scam Scanner</span>
       </Link>
 
       <div className="flex w-full max-w-[400px] flex-col gap-6.5 rounded-[10px] border border-border bg-card p-9">
         <div className="flex flex-col gap-2 text-center">
-          <p className="font-mono text-[11.5px] uppercase tracking-[0.07em] text-primary">
-            Sign in required
-          </p>
-          <h1 className="font-serif text-[21px] font-semibold">
+          <p className="type-label text-primary">Sign in required</p>
+          <h1 className="text-[21px] font-bold tracking-[-0.02em]">
             Sign in to continue
           </h1>
           <p className="text-[13.5px] leading-relaxed text-muted-foreground">

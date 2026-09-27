@@ -10,7 +10,7 @@ const steps = [
   {
     icon: Upload,
     visual: UploadVisual,
-    number: "STEP 01",
+    number: "Step 1",
     title: "Upload your evidence",
     description:
       "Screenshots, chat exports, PDFs, or contracts. Add anything extra you remember, in your own words.",
@@ -18,15 +18,15 @@ const steps = [
   {
     icon: Eye,
     visual: AnalysisVisual,
-    number: "STEP 02",
-    title: "Multimodal AI Analysis",
+    number: "Step 2",
+    title: "Multimodal AI analysis",
     description:
       "Reads text inside images and links names, amounts, and claims to where they appeared.",
   },
   {
     icon: ShieldCheck,
     visual: PatternVisual,
-    number: "STEP 03",
+    number: "Step 3",
     title: "Checked against real scam patterns",
     description:
       "Every case is compared against known scam techniques, and checked for contradictions, risky links.",
@@ -34,7 +34,7 @@ const steps = [
   {
     icon: BadgeCheck,
     visual: VerdictVisual,
-    number: "STEP 04",
+    number: "Step 4",
     title: "Get a clear verdict",
     description:
       "A well calculated risk verdict, a plain-language explanation of why, and a checklist of exactly what to verify next.",
@@ -46,10 +46,8 @@ const HowItWorks = () => {
     <section id="how" className="scroll-mt-19 border-y border-border bg-muted py-20">
       <div className="mx-auto max-w-295 px-6 md:px-12">
         <div className="mb-13 max-w-145">
-          <p className="font-mono text-xs uppercase tracking-[0.09em] text-primary">
-            How it works
-          </p>
-          <h2 className="mt-3.5 font-serif text-[32px] font-semibold leading-[1.2]">
+          <p className="type-label text-primary">How it works</p>
+          <h2 className="mt-3 type-h2">
             Four steps. No guesswork.
           </h2>
         </div>
@@ -71,10 +69,8 @@ const HowItWorks = () => {
 
               <div className="flex min-w-0 flex-1 flex-col gap-3.5">
                 <step.visual />
-                <p className="mt-1.5 font-mono text-xs text-muted-foreground">
-                  {step.number}
-                </p>
-                <h3 className="font-serif text-[17px] font-semibold">
+                <p className="mt-1.5 type-label text-primary">{step.number}</p>
+                <h3 className="type-h3">
                   {step.title}
                 </h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">

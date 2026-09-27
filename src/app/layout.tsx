@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Serif, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono, Noto_Sans_Bengali } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/header";
 import { cn } from "@/lib/utils";
@@ -9,20 +9,18 @@ export const metadata: Metadata = {
   title: "Scam Scanner",
   description: "An AI based scam case investigator",
 };
-const plexSerif = IBM_Plex_Serif({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["600"],
-  variable: "--font-serif",
+  variable: "--font-jakarta",
 });
-const plexSans = IBM_Plex_Sans({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-sans",
+  variable: "--font-jetbrains",
 });
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-mono",
+// fallback for ৳ and Bengali text, which the Latin fonts don't include
+const notoBengali = Noto_Sans_Bengali({
+  subsets: ["bengali"],
+  variable: "--font-bengali",
 });
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -30,10 +28,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={cn(
-        plexSerif.variable,
-        plexMono.variable,
+        jakarta.variable,
+        jetbrainsMono.variable,
+        notoBengali.variable,
         "font-sans scroll-smooth",
-        plexSans.variable,
       )}
     >
       <body className="min-h-full flex flex-col">

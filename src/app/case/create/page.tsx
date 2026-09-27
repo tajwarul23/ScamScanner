@@ -188,10 +188,8 @@ export default function NewInvestigationPage() {
     <main className="flex flex-1 justify-center px-6 py-10 md:px-12">
       <div className="w-full max-w-160">
         <div className="mb-6.5">
-          <p className="font-mono text-sm  uppercase  text-primary">
-            New investigation
-          </p>
-          <h1 className="mt-2 font-serif text-2xl font-semibold">
+          <p className="type-label text-primary">New investigation</p>
+          <h1 className="mt-2 type-h1">
             Start a new investigation
           </h1>
         </div>
@@ -265,8 +263,8 @@ export default function NewInvestigationPage() {
                       <span className="flex-1 truncate text-[13.5px]">
                         {file.name}
                       </span>
-                      <span className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 font-mono text-[10.5px] font-medium tracking-wide text-primary">
-                        READY
+                      <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-primary">
+                        Ready
                       </span>
                       <button
                         type="button"
@@ -282,7 +280,7 @@ export default function NewInvestigationPage() {
             )}
             {/* divider */}
             <Marker variant="separator" >
-              <MarkerContent className="font-serif text-black text-xl ">OR</MarkerContent>
+              <MarkerContent className="text-sm font-semibold text-muted-foreground">or</MarkerContent>
             </Marker>
             <Controller
               name="textEvidence"

@@ -33,10 +33,8 @@ const PublicFeedCard = () => {
     >
       <div className="mx-auto max-w-[1180px] px-6 md:px-12">
         <div className="mb-11 max-w-[640px]">
-          <p className="font-mono text-xs uppercase tracking-[0.09em] text-primary">
-            Public scam feed
-          </p>
-          <h2 className="mt-3.5 font-serif text-[32px] font-semibold leading-[1.2]">
+          <p className="type-label text-primary">Public scam feed</p>
+          <h2 className="mt-3 type-h2">
             See what other people are flagging — never who.
           </h2>
           <p className="mt-3.5 text-[15px] leading-relaxed text-muted-foreground">
@@ -53,11 +51,11 @@ const PublicFeedCard = () => {
               className="flex flex-col gap-3 rounded-[10px] border border-border bg-card p-6.5"
             >
               <span
-                className={`inline-flex w-fit items-center rounded-md px-2.5 py-1 font-mono text-[11px] font-medium tracking-wide ${riskStyles[entry.risk]}`}
+                className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-bold ${riskStyles[entry.risk]}`}
               >
-                {entry.risk === "high" ? "HIGH RISK" : "MEDIUM RISK"}
+                {entry.risk === "high" ? "High risk" : "Medium risk"}
               </span>
-              <h3 className="text-[15.5px] font-semibold leading-snug">
+              <h3 className="text-[15.5px] font-bold leading-snug tracking-[-0.01em]">
                 {entry.title}
               </h3>
               <p className="text-[13px] text-muted-foreground">

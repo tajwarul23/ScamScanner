@@ -38,10 +38,10 @@ export function CaseCard({ item }: { item: UserCase }) {
       className="flex items-center gap-3 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/40"
     >
       <div className="flex flex-1 flex-col gap-1 overflow-hidden">
-        <span className="truncate text-base font-medium text-foreground">
+        <span className="truncate text-base font-semibold tracking-[-0.01em] text-foreground">
           {item.title ?? "Generating report…"}
         </span>
-        <span className="font-mono text-xs text-muted-foreground">
+        <span className="text-xs tabular-nums text-muted-foreground">
           {item.evidenceItems.length} evidence item{item.evidenceItems.length !== 1 ? "s" : ""} ·{" "}
           {formatDate(item.createdAt)}
         </span>
@@ -49,10 +49,10 @@ export function CaseCard({ item }: { item: UserCase }) {
 
       {item.riskLevel && RiskIcon ? (
         <span
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-xs font-medium uppercase tracking-wide ${riskStyles[item.riskLevel]}`}
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${riskStyles[item.riskLevel]}`}
         >
-          <RiskIcon className="size-3.5" strokeWidth={1.8} />
-          {item.riskLevel}
+          <RiskIcon className="size-3.5" strokeWidth={2} />
+          <span className="capitalize">{item.riskLevel}</span> risk
         </span>
       ) : status ? (
         <span

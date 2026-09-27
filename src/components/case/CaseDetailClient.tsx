@@ -31,9 +31,9 @@ const riskStyles: Record<string, string> = {
 };
 
 const riskBannerStyles: Record<string, string> = {
-  low: "border-risk-low bg-risk-low-bg text-risk-low",
-  medium: "border-risk-med bg-risk-med-bg text-risk-med",
-  high: "border-risk-high bg-risk-high-bg text-risk-high",
+  low: "border-risk-low/25 bg-risk-low-bg",
+  medium: "border-risk-med/25 bg-risk-med-bg",
+  high: "border-risk-high/25 bg-risk-high-bg",
 };
 
 const riskIcons: Record<string, typeof AlertTriangle> = {
@@ -80,9 +80,7 @@ interface CaseDetailClientProps {
 function EvidenceQuote({ label, text }: { label: string; text: string }) {
   return (
     <div className="flex-1 rounded-md border border-border bg-background p-2.5">
-      <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
+      <p className="font-mono text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-base text-foreground">&ldquo;{text}&rdquo;</p>
     </div>
   );
@@ -140,12 +138,12 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
           </div>
 
           {/* only visible in the PDF */}
-          <p className="hidden font-mono text-xs uppercase tracking-wide text-muted-foreground print:block">
+          <p className="hidden type-label text-muted-foreground print:block">
             Scam Scanner report · {new Date(caseData.createdAt).toLocaleDateString()}
           </p>
 
           <div className="mt-2 flex items-start justify-between gap-4">
-            <h1 className="font-serif text-3xl font-semibold tracking-tight">
+            <h1 className="type-h1">
               {caseData.title ?? "Generating report…"}
             </h1>
 
@@ -164,29 +162,29 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
 
         {caseData.riskLevel && RiskIcon && (
           <div
-            className={`flex items-start gap-3 rounded-lg border-l-4 p-4 print:break-inside-avoid ${riskBannerStyles[caseData.riskLevel]}`}
+            className={`flex flex-col items-start gap-2.5 rounded-xl border p-4 sm:flex-row sm:items-center sm:gap-3.5 print:break-inside-avoid ${riskBannerStyles[caseData.riskLevel]}`}
           >
-            <RiskIcon className="mt-0.5 size-5 shrink-0" strokeWidth={1.8} />
-            <div className="flex flex-col gap-1">
-              <span className="font-mono text-base font-bold uppercase tracking-wide">
-                {caseData.riskLevel} risk
-              </span>
-              <p className="text-base text-foreground">
-                {riskDescriptions[caseData.riskLevel]}
-              </p>
-            </div>
+            <span
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold text-white ${dotStyles[caseData.riskLevel]}`}
+            >
+              <RiskIcon className="size-4" strokeWidth={2} />
+              <span className="capitalize">{caseData.riskLevel}</span> risk
+            </span>
+            <p className="text-base font-medium text-foreground">
+              {riskDescriptions[caseData.riskLevel]}
+            </p>
           </div>
         )}
 
         {isProcessing && (
-          <div className="flex items-center gap-2 rounded-lg border-l-4 border-border bg-card p-4 text-base text-muted-foreground">
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-4 text-base text-muted-foreground">
             <Loader2Icon className="size-4 animate-spin" />
             Analyzing your evidence — this updates automatically.
           </div>
         )}
 
         {isFailed && (
-          <div className="flex flex-col gap-2 rounded-lg border-l-4 border-destructive bg-destructive/10 p-4 text-base text-destructive">
+          <div className="flex flex-col gap-2 rounded-xl border border-destructive/25 bg-destructive/10 p-4 text-base text-destructive">
             <p>
               We couldn&apos;t analyze any of the evidence in this case. Try creating a new
               investigation with different files or try again later.
@@ -207,7 +205,7 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
               <>
                 {caseData.summary && (
                   <div className="flex flex-col gap-2 border-b border-border pb-6">
-                    <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    <h2 className="type-h3">
                       Summary
                     </h2>
                     <p className="text-base leading-relaxed text-foreground">{caseData.summary}</p>
@@ -216,7 +214,7 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
 
                 {caseData.redFlags.length > 0 && (
                   <div className="flex flex-col gap-3 border-b border-border pb-6">
-                    <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    <h2 className="type-h3">
                       Red flags
                     </h2>
                     <div className="flex flex-col gap-4">
@@ -241,7 +239,7 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
 
                 {caseData.redFlags.length === 0 && caseData.signals && caseData.signals.length > 0 && (
                   <div className="flex flex-col gap-3 border-b border-border pb-6">
-                    <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    <h2 className="type-h3">
                       Key findings
                     </h2>
                     <div className="flex flex-col gap-3">
@@ -269,7 +267,7 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
                 {caseData.contradictions && caseData.contradictions.length > 0 && (
                   <div className="flex flex-col gap-3 border-b border-border pb-6">
                     <div className="flex items-baseline justify-between">
-                      <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                      <h2 className="type-h3">
                         Conflicting Information
                       </h2>
                       <span className="text-sm text-muted-foreground">
@@ -284,7 +282,7 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
                           <div key={i} className="rounded-lg border border-border bg-card p-4 print:break-inside-avoid">
                             <div className="mb-3 flex items-center gap-2">
                               <span
-                                className={`inline-flex items-center rounded-md px-2 py-0.5 font-mono text-xs font-medium uppercase tracking-wide ${riskStyles[contradiction.severity]}`}
+                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold capitalize ${riskStyles[contradiction.severity]}`}
                               >
                                 {contradiction.severity}
                               </span>
@@ -311,7 +309,7 @@ export function CaseDetailClient({ caseId, initialCase }: CaseDetailClientProps)
 
                 {caseData.verifySteps && caseData.verifySteps.length > 0 && (
                   <div className="flex flex-col gap-3">
-                    <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    <h2 className="type-h3">
                       What to verify before acting
                     </h2>
                     <div className="flex flex-col gap-2.5">

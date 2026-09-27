@@ -8,8 +8,8 @@ export default async function ReportsPage() {
     <main className="flex flex-1 justify-center px-6 py-10 md:px-12">
       <div className="flex w-full max-w-[760px] flex-col gap-6">
         <div>
-          <p className="font-mono text-xs text-muted-foreground">Dashboard</p>
-          <h1 className="mt-2 font-serif text-3xl font-semibold tracking-tight">
+          <p className="type-label text-primary">Dashboard</p>
+          <h1 className="mt-2 type-h1">
             Your reports
           </h1>
         </div>

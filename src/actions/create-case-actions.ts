@@ -209,7 +209,8 @@ export const createCaseAction = async (
     await caseQueue.add(
       CASE_QUEUE_NAME,
       { caseId: newCase.id },
-      { removeOnComplete: true },
+      { removeOnComplete: true, attempts: 2, backoff: { type: "exponential", delay: 10_000 } }
+
     );
   } catch (err) {
     console.error("Failed to enqueue case for processing", newCase.id, err);

@@ -1,10 +1,14 @@
 import "./env";
+import { db } from "@/lib/db";
+import { cases } from "@/lib/db/schema";
 
 import { processCase } from "@/lib/pipeline/processCase";
 import { CASE_QUEUE_NAME } from "@/lib/queue/caseQueue";
 import { queueConnection } from "@/lib/queue/ioRedisConnection";
 import { Worker } from "bullmq";
 import http from "node:http";
+
+import { and, eq, inArray } from "drizzle-orm";
 const worker = new Worker(
   CASE_QUEUE_NAME,
   async (job) => {
@@ -22,8 +26,17 @@ const worker = new Worker(
 worker.on("completed", (job) => {
   console.log(`Case ${job.data.caseId} processed successfully`);
 });
-worker.on("failed", (job, err) => {
+worker.on("failed", async (job, err) => {
   console.error(`Case ${job?.data.caseId} failed:`, err);
+  if (!job || job.attemptsMade < (job.opts.attempts ?? 1)) return; // more retries coming
+  try {
+    await db
+      .update(cases)
+      .set({ status: "failed" })
+      .where(and(eq(cases.id, job.data.caseId), inArray(cases.status, ["processing", "finalizing"])));
+  } catch (e) {
+    console.error(`Could not mark case ${job.data.caseId} as failed`, e);
+  }
 });
 console.log("Worker started, listening for jobs on", CASE_QUEUE_NAME);
 

@@ -6,6 +6,8 @@ import { PASTED_TEXT_LABEL } from "./constants";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
+  timeout: 90_000,
+  maxRetries: 1,
 });
 
 const GROQ_TEXT_MODEL = "openai/gpt-oss-120b";

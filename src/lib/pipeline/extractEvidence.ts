@@ -5,8 +5,8 @@ import {  z } from "zod";
 import { withFallBack } from "../resilience/withFallback";
 
 
-const gemini = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const gemini = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY, httpOptions: {timeout:60_000} });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY, timeout:60_000, maxRetries:1 });
 
 const GROQ_VISION_MODEL = "qwen/qwen3.8-27b";
 const GROQ_TEXT_MODEL = "openai/gpt-oss-120b";

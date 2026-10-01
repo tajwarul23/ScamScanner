@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { cases, evidenceItems } from "@/lib/db/schema";
 import { convertDocxToText } from "@/lib/pipeline/convertDocx";
@@ -89,7 +89,7 @@ const finalizeIfReady = async (caseId: string) => {
   const claimed = await db
     .update(cases)
     .set({ status: "finalizing" })
-    .where(and(eq(cases.id, caseId), eq(cases.status, "processing")))
+    .where(and(eq(cases.id, caseId),  inArray(cases.status, ["processing", "finalizing"])))
     .returning({ id: cases.id, context: cases.context });
 
   if (claimed.length === 0) return;

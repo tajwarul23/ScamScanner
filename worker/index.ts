@@ -26,6 +26,12 @@ const worker = new Worker(
 worker.on("completed", (job) => {
   console.log(`Case ${job.data.caseId} processed successfully`);
 });
+worker.on("active", (job) => {
+  console.log(`[${job.data.caseId}] job active, attempt ${job.attemptsMade + 1}`);
+});
+worker.on("stalled", (jobId) => {
+  console.log(`Job ${jobId} stalled, will be retried`);
+});
 worker.on("failed", async (job, err) => {
   console.error(`Case ${job?.data.caseId} failed:`, err);
   if (!job || job.attemptsMade < (job.opts.attempts ?? 1)) return; // more retries coming

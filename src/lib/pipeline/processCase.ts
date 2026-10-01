@@ -33,8 +33,10 @@ const getEvidenceBuffer = async (item: EvidenceItem): Promise<Buffer> => {
 
 //extract evidence from the uploaded file's buffer
 const processEvidenceItem = async (item: EvidenceItem) => {
+  console.log(`[${item.caseId}] item start: ${item.fileName} (${item.mimeType})`);
   try {
     const buffer = await getEvidenceBuffer(item);
+    console.log(`[${item.caseId}] item downloaded: ${item.fileName}, ${buffer.length} bytes`);
     let data;
     if (item.mimeType === DOCX_MIME_TYPE) {
       const text = await convertDocxToText(buffer);
@@ -52,8 +54,9 @@ const processEvidenceItem = async (item: EvidenceItem) => {
       .update(evidenceItems)
       .set({ extractionStatus: "success", extractedData: data })
       .where(eq(evidenceItems.id, item.id));
+    console.log(`[${item.caseId}] item success: ${item.fileName}`);
   } catch (err) {
-    console.error("Extraction failed for evidence item", item.id, err);
+    console.error(`[${item.caseId}] item failed: ${item.fileName}`, err);
     await db
       .update(evidenceItems)
       .set({
@@ -70,7 +73,10 @@ const finalizeIfReady = async (caseId: string) => {
     where: eq(evidenceItems.caseId, caseId),
   });
 
-  if (items.some((item) => item.extractionStatus === "pending")) return;
+  if (items.some((item) => item.extractionStatus === "pending")) {
+    console.log(`[${caseId}] still has pending items, skipping finalize`);
+    return;
+  }
 
   const successfulItems = items.flatMap((item) =>
     item.extractionStatus === "success" && item.extractedData
@@ -79,6 +85,7 @@ const finalizeIfReady = async (caseId: string) => {
   );
 
   if (successfulItems.length === 0) {
+    console.log(`[${caseId}] no successful items, marking failed`);
     await db
       .update(cases)
       .set({ status: "failed" })
@@ -92,7 +99,11 @@ const finalizeIfReady = async (caseId: string) => {
     .where(and(eq(cases.id, caseId),  inArray(cases.status, ["processing", "finalizing"])))
     .returning({ id: cases.id, context: cases.context });
 
-  if (claimed.length === 0) return;
+  if (claimed.length === 0) {
+    console.log(`[${caseId}] claim matched 0 rows, skipping`);
+    return;
+  }
+  console.log(`[${caseId}] finalizing with ${successfulItems.length} items`);
 
   try {
     const cleanResults = successfulItems.map((item) => item.extractedData);
@@ -102,11 +113,13 @@ const finalizeIfReady = async (caseId: string) => {
       rawText: item.rawText ?? undefined,
     }));
     const signals = await ruleSignalEngine(cleanResults);
+    console.log(`[${caseId}] signals done: ${signals.length}`);
     const report = await finalizeCase(
       evidenceForReport,
       signals,
       claimed[0].context ?? undefined,
     );
+    console.log(`[${caseId}] report generated, risk=${report.riskLevel}`);
 
     await db
       .update(cases)
@@ -121,8 +134,9 @@ const finalizeIfReady = async (caseId: string) => {
         redFlags: report.redFlags
       })
       .where(eq(cases.id, caseId));
+    console.log(`[${caseId}] status -> ready`);
   } catch (err) {
-    console.error("Failed to generate final report", err);
+    console.error(`[${caseId}] final report failed`, err);
     await db
       .update(cases)
       .set({ status: "failed" })
@@ -132,6 +146,7 @@ const finalizeIfReady = async (caseId: string) => {
 
 //main function
 export const processCase = async (caseId: string) => {
+  console.log(`[${caseId}] processCase start`);
   const items = await db.query.evidenceItems.findMany({
     where: eq(evidenceItems.caseId, caseId),
   });
@@ -139,6 +154,8 @@ export const processCase = async (caseId: string) => {
   const pendingItems = items.filter(
     (item) => item.extractionStatus === "pending",
   );
+  console.log(`[${caseId}] items: ${items.length} total, ${pendingItems.length} pending`);
   await Promise.all(pendingItems.map((item) => processEvidenceItem(item)));
   await finalizeIfReady(caseId);
+  console.log(`[${caseId}] processCase done`);
 };
